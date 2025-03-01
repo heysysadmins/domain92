@@ -1,3 +1,4 @@
+print("importing things...")
 from PIL import Image
 from io import BytesIO
 import time
@@ -5,193 +6,121 @@ import requests as req
 import re
 import random
 import string
+from art import *
 import freedns
 
-# proxies = {"http": "socks5://127.0.0.1:9050", "https": "socks5://127.0.0.1:9050"}
+ip = "104.36.86.105"
+tprint("domain92")
+
 client = freedns.Client()
+
+print("client initialized")
+domainlist = []
+domainnames = []
+print("finding domains")
+# uncomment the following lines to use tor if you get ip banned
+# you need to set up the tor service on your system and start it.
 # print("setting proxy through tor")
+# proxies = {"http": "socks5://127.0.0.1:9050", "https": "socks5://127.0.0.1:9050"}
 # client.session.proxies.update(proxies)
-print("cleint initialized")
-domainlist = [
-    202912,
-    1034777,
-    862650,
-    602483,
-    1003196,
-    736103,
-    653235,
-    717627,
-    797323,
-    639192,
-    922846,
-    870227,
-    1151062,
-    852689,
-    377240,
-    1000189,
-    833343,
-    738607,
-    191996,
-    267705,
-    1025303,
-    1057091,
-    1231748,
-    421353,
-    756296,
-    1075157,
-    1014292,
-    743443,
-    882849,
-    339528,
-    422641,
-    231146,
-    724332,
-    788252,
-    1124405,
-    739468,
-    857964,
-    767341,
-    986903,
-    851500,
-    670881,
-    911466,
-    686932,
-    998693,
-    794917,
-    902289,
-    716468,
-    1207773,
-    791036,
-    568087,
-    537582,
-    1020808,
-    916709,
-    590150,
-    770445,
-    366168,
-    774473,
-    403035,
-    845371,
-    375723,
-    695508,
-    946361,
-    904452,
-    1373070,
-    816402,
-    1106393,
-    417734,
-    1092455,
-    833441,
-    685486,
-    779172,
-    678837,
-    816188,
-    714344,
-    717501,
-    660820,
-    718956,
-    838289,
-    973068,
-    843131,
-    904451,
-    1062960,
-    902488,
-    265565,
-    726612,
-    766506,
-    830174,
-    1053378,
-]
-domainnames = [
-    "rpcthai.com",
-    "sachhot.com",
-    "sacrebl.eu",
-    "stanharvell.com",
-    "taufonua.to",
-    "thejaq.net",
-    "thetachiusf.com",
-    "tth.com.pk",
-    "vvvrm.net",
-    "xy-solutions.com",
-    "2gfkitchen.com",
-    "arfotoarte.com",
-    "bellyfatcat.com",
-    "chucktam.com",
-    "cmr.com.ar",
-    "dirtchicvt.com",
-    "donnaspa.net",
-    "egood-tw.com",
-    "fiat500.li",
-    "insilico.at",
-    "itzzm.com",
-    "jnussbaum.com",
-    "justminers.com",
-    "kancilja.si",
-    "labgarreguevara.com.ar",
-    "rocketpride.com",
-    "shankillweather.com",
-    "shredstreet.com",
-    "smwilliams.com",
-    "thesqueakandoilchart.com",
-    "thsa.com.ar",
-    "utrealestatedreamteam.com",
-    "vinoniv.com",
-    "ausnetwebhosting.com",
-    "botar.co.uk",
-    "conveyancingmonkey.com",
-    "dmazzola.com",
-    "kowaileet.com",
-    "ltelink.at",
-    "mobil-ray.ru",
-    "mycrossfire.net",
-    "remulon.com",
-    "rileytree.org",
-    "servidorlocal.pt",
-    "shanetrainfitness.com",
-    "stpetersandstpauls.org",
-    "thinairtech.com",
-    "vivandex.com",
-    "vsltech.net",
-    "westlondon-escorts.net",
-    "a-pratama.com",
-    "abwild.net",
-    "albacetediario.com",
-    "assuregloves.com",
-    "carrard.org",
-    "clickandmortar.ca",
-    "cyberdine.ca",
-    "danleevogler.net",
-    "edah.us",
-    "etranslator.eu",
-    "generaloweb.com",
-    "gridtoroad.com",
-    "kandla.com",
-    "kick.sh",
-    "npmpt.com",
-    "parcomunica.com",
-    "periodico.am",
-    "protelecon.com",
-    "sgmlguru.org",
-    "skam.co",
-    "southwestvoodoo.com",
-    "stockcity.ru",
-    "tuoitrevn.nl",
-    "vikingbild.se",
-    "wesseldijkstra.com",
-    "zlotecentrum.com",
-    "50friends.com.mx",
-    "asiaherewe.com",
-    "atf.com.np",
-    "changamuka.com",
-    "chowpatty.com",
-    "cthchile.com",
-    "cwqso.net",
-    "daniellaporter.cl",
-    "designjobs.eu",
-    "etaxichile.cl",
-    "gradientking.com",
-    "jasoncoyne.com",
-]
+# print("proxy set")
+iplist = {
+    "custom": "custom",
+    "1346.lol": "159.54.169.0",
+    "Acceleration": "141.148.134.230",
+    "Artclass": "198.251.90.4",
+    "Astro": "104.243.37.85",
+    "Astroid": "5.161.68.227",
+    "Astroid (2)": "152.53.53.8",
+    "Boredom": "152.53.36.42",
+    "Bolt": "104.36.86.24",
+    "Breakium": "172.93.100.82",
+    "BrunysIXLWork": "185.211.4.69",
+    "Canlite (3kh0 v5)": "104.36.85.249",
+    "Catway": "A-92.38.148.24",
+    "Comet/PXLNOVA": "172.66.46.221",
+    "Core": "207.211.183.185",
+    "Croxy Proxy": "157.230.79.247",
+    "Croxy Proxy (2)": "143.244.204.138",
+    "Croxy Proxy (3)": "157.230.113.153",
+    "Doge Unblocker": "104.243.38.142",
+    "DuckHTML": "104.167.215.179",
+    "Duckflix": "104.21.54.237",
+    "Emerald/Phantom Games/G1mkit": "66.23.198.136 ",
+    "Equinox": "74.208.202.111",
+    "FalconLink": "104.243.43.17",
+    "Frogiees Arcade": "152.53.1.222",
+    "Ghost/AJH's Vault": "163.123.192.9",
+    "GlacierOS": "66.241.124.98",
+    "Hdun": "109.204.188.135",
+    "Interstellar": "66.23.193.126",
+    "Kasm 1": "145.40.75.101",
+    "Kasm 2": "142.93.68.85",
+    "Kasm 3": "165.22.33.54",
+    "Kazwire": "103.195.102.132 ",
+    "Light": "104.243.45.193",
+    "Lunaar": "164.152.26.189",
+    "Mocha": "45.88.186.218",
+    "Moonlight": "172.93.104.11",
+    "Onyx": "172.67.158.114",
+    "Plexile Arcade": "216.24.57.1",
+    "Pulsar": "172.93.106.140",
+    "Ruby": "104.36.86.104",
+    "Rammerhead IP": "108.181.32.77",
+    "Selenite (Ultrabrowse server)": "104.131.74.161",
+    "Selenite": "65.109.112.222",
+    "Seraph": "15.235.166.92",
+    "Shadow": "104.243.38.18",
+    "Space": "104.243.38.145",
+    "Sunset": "107.206.53.96",
+    "Sunnys Gym": "69.48.204.208",
+    "Szvy Central": "152.53.38.100",
+    "Tinf0il": "129.213.65.72",
+    "The Pizza Edition": "104.36.84.31",
+    "thepegleg": "104.36.86.105",
+    "UniUB": "104.243.42.228",
+    "Utopia": "132.145.197.109",
+    "Velara": "185.211.4.69",
+    "Void Network": "141.193.68.52",
+    "Waves": "93.127.130.22",
+    "Xenapsis/Ephraim": "66.175.239.22",
+}
+
+
+def finddomains(pages):
+    global domainlist, domainnames
+    for i in range(pages):
+        html = req.get(
+            "https://freedns.afraid.org/domain/registry/?page="
+            + str(pages + 1)
+            + "&sort=2&q=",
+            headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Cache-Control": "max-age=0",
+                "Connection": "keep-alive",
+                "DNT": "1",
+                "Host": "freedns.afraid.org",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Upgrade-Insecure-Requests": "1",
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+                "sec-ch-ua": '"Not;A=Brand";v="24", "Chromium";v="128"',
+                "sec-ch-ua-platform": "Linux",
+            },
+        ).text
+        pattern = r"<a href=/subdomain/edit\.php\?edit_domain_id=\d+>([\w.-]+)</a>.*?<td>public</td>"
+        domainnames.extend(re.findall(pattern, html))
+        pattern = r"<a href=/subdomain/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)</a>.*?<td>public</td>"
+        matches = re.findall(pattern, html)
+        domainlist.extend([match[0] for match in matches])  # Extract only the IDs
+
+
+finddomains(10)
+
+print("ready")
 
 
 def generate_random_string(length):
@@ -200,7 +129,7 @@ def generate_random_string(length):
     return "".join(random.choice(letters) for i in range(length))
 
 
-def createmax():
+def login():
     while True:
         try:
             print("getting captcha")
@@ -262,46 +191,78 @@ def createmax():
                 else:
                     print("checked email")
                     time.sleep(3)
+        except:
+            print("login error!")
+            continue
+        else:
+            break
 
-            print("logged in")
-            print("creating domains")
-            createdomain()
-            time.sleep(3)
-            createdomain()
-            time.sleep(3)
-            createdomain()
-            time.sleep(3)
-            createdomain()
-            time.sleep(3)
-            createdomain()
-            time.sleep(3)
+
+def createmax():
+    login()
+    print("logged in")
+    print("creating domains")
+    createdomain()
+    time.sleep(3)
+    createdomain()
+    time.sleep(3)
+    createdomain()
+    time.sleep(3)
+    createdomain()
+    time.sleep(3)
+    createdomain()
+    time.sleep(3)
+
+
+def createdomain():
+    while True:
+        try:
+            print("creating domain")
+            image = Image.open(BytesIO(client.get_captcha()))
+            image.show()
+            capcha = input("Enter the captcha code: ")
+            random_domain_id = random.choice(domainlist)
+            subdomainy = generate_random_string(10)
+            client.create_subdomain(capcha, "A", subdomainy, random_domain_id, ip)
+            print("domain created")
+            print(
+                "link: http://"
+                + subdomainy
+                + "."
+                + domainnames[domainlist.index(random_domain_id)]
+            )
+            domainsdb = open("domainlist.txt", "a")  # append mode
+            domainsdb.write(
+                "\nhttp://"
+                + subdomainy
+                + "."
+                + domainnames[domainlist.index(random_domain_id)]
+            )
+            domainsdb.close()
         except:
             continue
         else:
             break
 
 
-def createdomain():
-    print("creating domain")
-    image = Image.open(BytesIO(client.get_captcha()))
-    image.show()
-    capcha = input("Enter the captcha code: ")
-    random_domain_id = random.choice(domainlist)
-    subdomainy = generate_random_string(10)
-    client.create_subdomain(capcha, "A", subdomainy, random_domain_id, "104.36.86.105")
-    print("domain created")
-    print(
-        "link: http://"
-        + subdomainy
-        + "."
-        + domainnames[domainlist.index(random_domain_id)]
-    )
-    domainsdb = open("domainlist.txt", "a")  # append mode
-    domainsdb.write(
-        "\nhttp://" + subdomainy + "." + domainnames[domainlist.index(random_domain_id)]
-    )
+def init():
+    global ip, iplist
+    chosen = chooseFrom(iplist, "Choose an IP to use:")
+    match chosen:
+        case "custom":
+            ip = input("Enter the custom IP: ")
+        case _:
+            ip = iplist[chosen]
+    for _ in range(int(input("how many accounts? "))):
+        createmax()
 
 
-for _ in range(int(input("how many accounts? "))):
-    createmax()
-domainsdb.close()
+def chooseFrom(dictionary, message):
+    print(message)
+    for i, key in enumerate(dictionary.keys()):
+        print(f"{i+1}. {key}")
+    choice = int(input("Choose an option by number: "))
+    return list(dictionary.keys())[choice - 1]
+
+
+init()
