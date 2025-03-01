@@ -19,3 +19,5 @@ python3 main.py
 ## notes
 - if use it enough, you might get ip blocked from creating accounts on freedns, there is a bit you can uncomment in the code about this.
 - please star if you use it!
+# License
+This project is licensed under the [GNU AGPL v3.0](LICENSE) :)
