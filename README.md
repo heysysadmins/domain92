@@ -1,2 +1,21 @@
 # domain92
-automated link generator
+A cool little script I wrote to make links for sites easily
+## about
+This script simplifies account creation and domain making on freedns.afraid.org.
+It uses ading2210's [freedns client](https://github.com/ading2210/freedns-client) and the guerrillamail.com api.
+All you have to do is sit there and solve captchas!
+## Usage
+### requirements
+- I used python Python 3.12.3 while making this, anything lower and you might have some problems
+### running
+install dependencies
+```bash
+pip install -r requirements.txt
+```
+run the program
+```bash
+python3 main.py
+```
+## notes
+- if use it enough, you might get ip blocked from creating accounts on freedns, there is a bit you can uncomment in the code about this.
+- please star if you use it!
