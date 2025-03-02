@@ -144,9 +144,8 @@ def login():
                 "https://api.guerrillamail.com/ajax.php?f=get_email_address"
             ).json()
             email = stuff["email_addr"]
-            print("email address generated")
+            print("email address generated email:" + email)
             print(email)
-            print(stuff)
             print("creating account")
             username = generate_random_string(13)
             client.create_account(
@@ -203,6 +202,14 @@ def login():
             break
 
 
+def createlinks(number):
+    for i in range(number):
+        if i % 5 == 0:
+            login()
+        createdomain()
+        time.sleep(3)
+
+
 def createmax():
     login()
     print("logged in")
@@ -222,7 +229,6 @@ def createmax():
 def createdomain():
     while True:
         try:
-            print("creating domain")
             image = Image.open(BytesIO(client.get_captcha()))
             image.show()
             capcha = input("Enter the captcha code: ")
@@ -244,18 +250,20 @@ def createdomain():
                 + domainnames[domainlist.index(random_domain_id)]
             )
             domainsdb.close()
-            print("notifying webhook")
-            req.post(
-                webhook,
-                json={
-                    "content": "Domain created:\nhttp://"
-                    + subdomainy
-                    + "."
-                    + domainnames[domainlist.index(random_domain_id)]
-                    + "\n ip: "
-                    + ip
-                },
-            )
+            if hookbool:
+                print("notifying webhook")
+                req.post(
+                    webhook,
+                    json={
+                        "content": "Domain created:\nhttp://"
+                        + subdomainy
+                        + "."
+                        + domainnames[domainlist.index(random_domain_id)]
+                        + "\n ip: "
+                        + ip
+                    },
+                )
+                print("webhook notified")
         except KeyboardInterrupt:
             # quit
             sys.exit()
@@ -280,8 +288,7 @@ def init():
             webhook = input("Enter the webhook URL: ")
         case "n":
             hookbool = False
-    for _ in range(int(input("how many accounts? "))):
-        createmax()
+    createlinks(int(input("Enter the number of links to create: ")))
 
 
 def chooseFrom(dictionary, message):
