@@ -8,6 +8,7 @@ import random
 import string
 from art import *
 import freedns
+import sys
 
 ip = "104.36.86.105"
 tprint("domain92")
@@ -192,6 +193,9 @@ def login():
                 else:
                     print("checked email")
                     time.sleep(3)
+        except KeyboardInterrupt:
+            # quit
+            sys.exit()
         except:
             print("login error!")
             continue
@@ -252,6 +256,9 @@ def createdomain():
                     + ip
                 },
             )
+        except KeyboardInterrupt:
+            # quit
+            sys.exit()
         except:
             print("some kinda error!")
             continue
