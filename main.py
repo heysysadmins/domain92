@@ -119,7 +119,8 @@ def finddomains(pages):
 
 
 finddomains(10)
-
+hookbool = False
+webhook = ""
 print("ready")
 
 
@@ -239,20 +240,39 @@ def createdomain():
                 + domainnames[domainlist.index(random_domain_id)]
             )
             domainsdb.close()
+            print("notifying webhook")
+            req.post(
+                webhook,
+                json={
+                    "content": "Domain created:\nhttp://"
+                    + subdomainy
+                    + "."
+                    + domainnames[domainlist.index(random_domain_id)]
+                    + "\n ip: "
+                    + ip
+                },
+            )
         except:
+            print("some kinda error!")
             continue
         else:
             break
 
 
 def init():
-    global ip, iplist
+    global ip, iplist, webhook, hookbool
     chosen = chooseFrom(iplist, "Choose an IP to use:")
     match chosen:
         case "custom":
             ip = input("Enter the custom IP: ")
         case _:
             ip = iplist[chosen]
+    match input("Do you want to use a webhook? (y/n) ").lower():
+        case "y":
+            hookbool = True
+            webhook = input("Enter the webhook URL: ")
+        case "n":
+            hookbool = False
     for _ in range(int(input("how many accounts? "))):
         createmax()
 
