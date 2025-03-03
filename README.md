@@ -7,8 +7,14 @@ All you have to do is sit there and solve captchas!
 ## Usage
 ### normal, easy way
 #### download and use the latest executable
-go to [releases](https://github.com/sebastian-92/domain92/releases) and download the latest executable for your platform, and run it
-### for development or to enable tor
+- go to [releases](https://github.com/sebastian-92/domain92/releases) and download the latest executable for your platform
+- run it
+### command line arguments
+do this to see them
+```bash
+./main-linux-64 -h
+```
+### for development
 #### requirements
 - I used python Python 3.12.3 while making this, anything lower and you might have some problems
 #### running
