@@ -1,4 +1,3 @@
-print("importing things...")
 from PIL import Image
 from io import BytesIO
 import time
@@ -9,22 +8,65 @@ import string
 from art import *
 import freedns
 import sys
+import argparse
 
-ip = "104.36.86.105"
-tprint("domain92")
+parser = argparse.ArgumentParser(
+    description="Automatically creates links for an ip on freedns"
+)
+parser.add_argument("--number", help="number of links to generate", type=int)
+parser.add_argument("--ip", help="ip to use", type=str)
+parser.add_argument("--webhook", help="webhook url, do none to not ask", type=str)
+parser.add_argument(
+    "--tor",
+    help="use local tor proxy (default uses 127.0.0.1:9050)",
+    action="store_true",
+)
+parser.add_argument(
+    "--proxy",
+    help="if you wanted to use an socks5 external proxy, or are running tor on a different port",
+    type=str,
+    default="socks5://127.0.0.1:9050",
+)
+parser.add_argument(
+    "--silent",
+    help="no output other than showing you the captchas",
+    action="store_true",
+)
+parser.add_argument(
+    "--outfile", help="output file for the domains", type=str, default="domainlist.txt"
+)
+parser.add_argument(
+    "--type", help="type of record to make, default is A", type=str, default="A"
+)
+parser.add_argument(
+    "--pages",
+    help="number of pages to scrape for tlds, default is 10",
+    type=int,
+    default=10,
+)
+args = parser.parse_args()
+ip = args.ip
+if not args.silent:
+    tprint("domain92")
+
+
+def checkprint(input):
+    global args
+    if not args.silent:
+        print(input)
+
 
 client = freedns.Client()
 
-print("client initialized")
+checkprint("client initialized")
 domainlist = []
 domainnames = []
-print("finding domains")
-# uncomment the following lines to use tor if you get ip banned
-# you need to set up the tor service on your system and start it.
-# print("setting proxy through tor")
-# proxies = {"http": "socks5://127.0.0.1:9050", "https": "socks5://127.0.0.1:9050"}
-# client.session.proxies.update(proxies)
-# print("proxy set")
+checkprint("finding domains")
+if args.tor:
+    checkprint("setting proxy with proxy: " + args.proxy)
+    proxies = {"http": args.proxy, "https": args.proxy}
+    client.session.proxies.update(proxies)
+    checkprint("proxy set")
 iplist = {
     "custom": "custom",
     "1346.lol": "159.54.169.0",
@@ -122,7 +164,7 @@ def finddomains(pages):
 finddomains(10)
 hookbool = False
 webhook = ""
-print("ready")
+checkprint("ready")
 
 
 def generate_random_string(length):
@@ -134,19 +176,19 @@ def generate_random_string(length):
 def login():
     while True:
         try:
-            print("getting captcha")
+            checkprint("getting captcha")
             image = Image.open(BytesIO(client.get_captcha()))
-            print("showing captcha")
+            checkprint("showing captcha")
             image.show()
             capcha = input("Enter the captcha code: ")
-            print("generating email")
+            checkprint("generating email")
             stuff = req.get(
                 "https://api.guerrillamail.com/ajax.php?f=get_email_address"
             ).json()
             email = stuff["email_addr"]
-            print("email address generated email:" + email)
-            print(email)
-            print("creating account")
+            checkprint("email address generated email:" + email)
+            checkprint(email)
+            checkprint("creating account")
             username = generate_random_string(13)
             client.create_account(
                 capcha,
@@ -156,8 +198,8 @@ def login():
                 "pegleg1234",
                 email,
             )
-            print("activation email sent")
-            print("waiting for email")
+            checkprint("activation email sent")
+            checkprint("waiting for email")
             hasnotreceived = True
             while hasnotreceived:
                 nerd = req.get(
@@ -166,7 +208,7 @@ def login():
                 ).json()
 
                 if int(nerd["count"]) > 0:
-                    print("email received")
+                    checkprint("email received")
                     mail = req.get(
                         "https://api.guerrillamail.com/ajax.php?f=fetch_email&email_id="
                         + str(nerd["list"][0]["mail_id"])
@@ -175,28 +217,28 @@ def login():
                     ).json()
                     match = re.search(r'\?([^">]+)"', mail["mail_body"])
                     if match:
-                        print("code found")
-                        print("verification code: " + match.group(1))
-                        print("activating account")
+                        checkprint("code found")
+                        checkprint("verification code: " + match.group(1))
+                        checkprint("activating account")
                         client.activate_account(match.group(1))
-                        print("accout activated")
-                        time.sleep(3)
-                        print("attempting login")
+                        checkprint("accout activated")
+                        time.sleep(1)
+                        checkprint("attempting login")
                         client.login(email, "pegleg1234")
-                        print("login successful")
+                        checkprint("login successful")
                         hasnotreceived = False
                     else:
-                        print("no match")
-                        print("error!")
+                        checkprint("no match")
+                        checkprint("error!")
 
                 else:
-                    print("checked email")
+                    checkprint("checked email")
                     time.sleep(3)
         except KeyboardInterrupt:
             # quit
             sys.exit()
         except:
-            print("login error!")
+            checkprint("login error!")
             continue
         else:
             break
@@ -207,23 +249,17 @@ def createlinks(number):
         if i % 5 == 0:
             login()
         createdomain()
-        time.sleep(3)
 
 
 def createmax():
     login()
-    print("logged in")
-    print("creating domains")
+    checkprint("logged in")
+    checkprint("creating domains")
     createdomain()
-    time.sleep(3)
     createdomain()
-    time.sleep(3)
     createdomain()
-    time.sleep(3)
     createdomain()
-    time.sleep(3)
     createdomain()
-    time.sleep(3)
 
 
 def createdomain():
@@ -234,15 +270,15 @@ def createdomain():
             capcha = input("Enter the captcha code: ")
             random_domain_id = random.choice(domainlist)
             subdomainy = generate_random_string(10)
-            client.create_subdomain(capcha, "A", subdomainy, random_domain_id, ip)
-            print("domain created")
-            print(
+            client.create_subdomain(capcha, args.type, subdomainy, random_domain_id, ip)
+            checkprint("domain created")
+            checkprint(
                 "link: http://"
                 + subdomainy
                 + "."
                 + domainnames[domainlist.index(random_domain_id)]
             )
-            domainsdb = open("domainlist.txt", "a")  # append mode
+            domainsdb = open(args.outfile, "a")  # append mode
             domainsdb.write(
                 "\nhttp://"
                 + subdomainy
@@ -251,7 +287,7 @@ def createdomain():
             )
             domainsdb.close()
             if hookbool:
-                print("notifying webhook")
+                checkprint("notifying webhook")
                 req.post(
                     webhook,
                     json={
@@ -263,38 +299,49 @@ def createdomain():
                         + ip
                     },
                 )
-                print("webhook notified")
+                checkprint("webhook notified")
         except KeyboardInterrupt:
             # quit
             sys.exit()
         except:
-            print("some kinda error!")
+            checkprint("some kinda error!")
             continue
         else:
             break
 
 
 def init():
-    global ip, iplist, webhook, hookbool
-    chosen = chooseFrom(iplist, "Choose an IP to use:")
-    match chosen:
-        case "custom":
-            ip = input("Enter the custom IP: ")
-        case _:
-            ip = iplist[chosen]
-    match input("Do you want to use a webhook? (y/n) ").lower():
-        case "y":
-            hookbool = True
-            webhook = input("Enter the webhook URL: ")
-        case "n":
+    global args, ip, iplist, webhook, hookbool
+    if not args.ip:
+        chosen = chooseFrom(iplist, "Choose an IP to use:")
+        match chosen:
+            case "custom":
+                ip = input("Enter the custom IP: ")
+            case _:
+                ip = iplist[chosen]
+    if not args.webhook:
+        match input("Do you want to use a webhook? (y/n) ").lower():
+            case "y":
+                hookbool = True
+                webhook = input("Enter the webhook URL: ")
+            case "n":
+                hookbool = False
+    else:
+        if args.webhook == "none":
             hookbool = False
-    createlinks(int(input("Enter the number of links to create: ")))
+        else:
+            hookbool = True
+            webhook = args.webhook
+    if args.number:
+        createlinks(args.number)
+    else:
+        createlinks(int(input("Enter the number of links to create: ")))
 
 
 def chooseFrom(dictionary, message):
-    print(message)
+    checkprint(message)
     for i, key in enumerate(dictionary.keys()):
-        print(f"{i+1}. {key}")
+        checkprint(f"{i+1}. {key}")
     choice = int(input("Choose an option by number: "))
     return list(dictionary.keys())[choice - 1]
 
