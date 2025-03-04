@@ -161,7 +161,7 @@ def finddomains(pages):
         domainlist.extend([match[0] for match in matches])  # Extract only the IDs
 
 
-finddomains(10)
+finddomains(args.pages)
 hookbool = False
 webhook = ""
 checkprint("ready")
