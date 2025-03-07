@@ -17,8 +17,8 @@ parser.add_argument("--number", help="number of links to generate", type=int)
 parser.add_argument("--ip", help="ip to use", type=str)
 parser.add_argument("--webhook", help="webhook url, do none to not ask", type=str)
 parser.add_argument(
-    "--tor",
-    help="use local tor proxy (default uses 127.0.0.1:9050)",
+    "--use_proxy",
+    help="use proxy (default uses 127.0.0.1:9050)",
     action="store_true",
 )
 parser.add_argument(
@@ -44,6 +44,12 @@ parser.add_argument(
     type=int,
     default=10,
 )
+parser.add_argument(
+    "--subdomains",
+    help="comma separated list of subdomains to use, default is random",
+    type=str,
+    default="random"
+)
 args = parser.parse_args()
 ip = args.ip
 if not args.silent:
@@ -62,7 +68,7 @@ checkprint("client initialized")
 domainlist = []
 domainnames = []
 checkprint("finding domains")
-if args.tor:
+if args.use_proxy:
     checkprint("setting proxy with proxy: " + args.proxy)
     proxies = {"http": args.proxy, "https": args.proxy}
     client.session.proxies.update(proxies)
@@ -164,6 +170,9 @@ def finddomains(pages):
 finddomains(args.pages)
 hookbool = False
 webhook = ""
+if args.subdomains != "random":
+    checkprint("Subdomains set to:")
+    checkprint(args.subdomains.split(","))
 checkprint("ready")
 
 
@@ -269,7 +278,10 @@ def createdomain():
             image.show()
             capcha = input("Enter the captcha code: ")
             random_domain_id = random.choice(domainlist)
-            subdomainy = generate_random_string(10)
+            if args.subdomains == "random":
+                subdomainy = generate_random_string(10)
+            else:
+                subdomainy = random.choice(args.subdomains.split(","))
             client.create_subdomain(capcha, args.type, subdomainy, random_domain_id, ip)
             checkprint("domain created")
             checkprint(
