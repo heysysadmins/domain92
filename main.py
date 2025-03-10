@@ -9,6 +9,9 @@ from art import *
 import freedns
 import sys
 import argparse
+import pytesseract
+import copy
+from PIL import ImageFilter
 
 parser = argparse.ArgumentParser(
     description="Automatically creates links for an ip on freedns"
@@ -23,7 +26,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--proxy",
-    help="if you wanted to use an socks5 external proxy, or are running tor on a different port",
+    help="if you wanted to use a custom socks5 external proxy, or are running tor on a different port",
     type=str,
     default="socks5://127.0.0.1:9050",
 )
@@ -49,6 +52,11 @@ parser.add_argument(
     help="comma separated list of subdomains to use, default is random",
     type=str,
     default="random"
+)
+parser.add_argument(
+    "--auto",
+    help="uses tesseract to automatically solve the captchas, this requres tesseract to be installed",
+    action="store_true",
 )
 args = parser.parse_args()
 ip = args.ip
@@ -176,6 +184,110 @@ if args.subdomains != "random":
 checkprint("ready")
 
 
+def getcaptcha():
+    return Image.open(BytesIO(client.get_captcha()))
+
+
+def denoise(img):
+    imgarr = img.load()
+    newimg = Image.new("RGB", img.size)
+    newimgarr = newimg.load()
+    dvs = []
+    for y in range(img.height):
+        for x in range(img.width):
+            r = imgarr[x, y][0]
+            g = imgarr[x, y][1]
+            b = imgarr[x, y][2]
+            if (r, g, b) == (255, 255, 255):
+                newimgarr[x, y] = (r, g, b)
+            elif ((r + g + b) / 3) == (112):
+                newimgarr[x, y] = (255, 255, 255)
+                dvs.append((x, y))
+            else:
+                newimgarr[x, y] = (0, 0, 0)
+
+    backup = copy.deepcopy(newimg)
+    backup = backup.load()
+    for y in range(img.height):
+        for x in range(img.width):
+            if newimgarr[x, y] == (255, 255, 255):
+                continue
+            black_neighbors = 0
+            for ny in range(max(0, y - 2), min(img.height, y + 2)):
+                for nx in range(max(0, x - 2), min(img.width, x + 2)):
+                    if backup[nx, ny] == (0, 0, 0):
+                        black_neighbors += 1
+            if black_neighbors <= 5:
+                newimgarr[x, y] = (255, 255, 255)
+    for x, y in dvs:
+        black_neighbors = 0
+        for ny in range(max(0, y - 2), min(img.height, y + 2)):
+            for nx in range(max(0, x - 1), min(img.width, x + 1)):
+                if newimgarr[nx, ny] == (0, 0, 0):
+                    black_neighbors += 1
+            if black_neighbors >= 5:
+                newimgarr[x, y] = (0, 0, 0)
+            else:
+                newimgarr[x, y] = (255, 255, 255)
+    width, height = newimg.size
+    black_pixels = set()
+    for y in range(height):
+        for x in range(width):
+            if newimgarr[x, y] == (0, 0, 0):
+                black_pixels.add((x, y))
+
+    for x, y in list(black_pixels):
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < width and 0 <= ny < height and (nx, ny) not in black_pixels:
+                newimgarr[nx, ny] = 0 
+    backup = copy.deepcopy(newimg)
+    backup = backup.load()
+    for y in range(img.height):
+        for x in range(img.width):
+            if newimgarr[x, y] == (255, 255, 255):
+                continue
+            black_neighbors = 0
+            for ny in range(max(0, y - 2), min(img.height, y + 2)):
+                for nx in range(max(0, x - 2), min(img.width, x + 2)):
+                    if backup[nx, ny] == (0, 0, 0):
+                        black_neighbors += 1
+            if black_neighbors <= 6:
+                newimgarr[x, y] = (255, 255, 255)
+    return newimg
+
+
+def solve(image):
+    image = denoise(image)
+    text = pytesseract.image_to_string(
+        image.filter(ImageFilter.GaussianBlur(1))
+        .convert("1")
+        .filter(ImageFilter.RankFilter(3, 3)),
+        config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 7",
+    ).replace("\n", "")
+    checkprint("got text: " + text)
+    if len(text) != 5 and len(text) != 4:
+        checkprint("Retrying with different filters")
+        text = pytesseract.image_to_string(
+            image.filter(ImageFilter.GaussianBlur(2)).filter(
+                ImageFilter.MedianFilter(3)
+            ),
+            config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 7",
+        ).replace("\n", "")
+        checkprint("got text: " + text)
+    if len(text) != 5 and len(text) != 4:
+        checkprint("Retrying with different filters")
+        text = pytesseract.image_to_string(
+            image,
+            config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 7",
+        ).replace("\n", "")
+        checkprint("got text: " + text)
+    if len(text) != 5 and len(text) != 4:
+        checkprint("trying different captcha")
+        text = solve(getcaptcha())
+    return text
+
+
 def generate_random_string(length):
     """Generates a random string of letters of given length."""
     letters = string.ascii_lowercase
@@ -186,10 +298,14 @@ def login():
     while True:
         try:
             checkprint("getting captcha")
-            image = Image.open(BytesIO(client.get_captcha()))
-            checkprint("showing captcha")
-            image.show()
-            capcha = input("Enter the captcha code: ")
+            image = getcaptcha()
+            if args.auto:
+                capcha = solve(image)
+                checkprint("captcha solved (hopefully)")
+            else:
+                checkprint("showing captcha")
+                image.show()
+                capcha = input("Enter the captcha code: ")
             checkprint("generating email")
             stuff = req.get(
                 "https://api.guerrillamail.com/ajax.php?f=get_email_address"
@@ -274,9 +390,14 @@ def createmax():
 def createdomain():
     while True:
         try:
-            image = Image.open(BytesIO(client.get_captcha()))
-            image.show()
-            capcha = input("Enter the captcha code: ")
+            image = getcaptcha()
+            if args.auto:
+                capcha = solve(image)
+                checkprint("captcha solved")
+            else:
+                checkprint("showing captcha")
+                image.show()
+                capcha = input("Enter the captcha code: ")
             random_domain_id = random.choice(domainlist)
             if args.subdomains == "random":
                 subdomainy = generate_random_string(10)
@@ -290,7 +411,7 @@ def createdomain():
                 + "."
                 + domainnames[domainlist.index(random_domain_id)]
             )
-            domainsdb = open(args.outfile, "a")  # append mode
+            domainsdb = open(args.outfile, "a")
             domainsdb.write(
                 "\nhttp://"
                 + subdomainy
