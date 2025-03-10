@@ -1,4 +1,0 @@
-pillow
-requests
-art
-freedns-client

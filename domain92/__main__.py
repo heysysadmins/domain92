@@ -51,7 +51,7 @@ parser.add_argument(
     "--subdomains",
     help="comma separated list of subdomains to use, default is random",
     type=str,
-    default="random"
+    default="random",
 )
 parser.add_argument(
     "--auto",
@@ -240,7 +240,7 @@ def denoise(img):
         for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             nx, ny = x + dx, y + dy
             if 0 <= nx < width and 0 <= ny < height and (nx, ny) not in black_pixels:
-                newimgarr[nx, ny] = 0 
+                newimgarr[nx, ny] = 0
     backup = copy.deepcopy(newimg)
     backup = backup.load()
     for y in range(img.height):
@@ -477,6 +477,5 @@ def chooseFrom(dictionary, message):
         checkprint(f"{i+1}. {key}")
     choice = int(input("Choose an option by number: "))
     return list(dictionary.keys())[choice - 1]
-
 
 init()
