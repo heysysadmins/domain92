@@ -1,5 +1,5 @@
 # domain92
-A cool little script I wrote to make links for sites easily
+A cool little program I wrote to automate link creation
 ## about
 This script simplifies account creation and domain making on freedns.afraid.org.
 It uses ading2210's [freedns client](https://github.com/ading2210/freedns-client) and the guerrillamail.com api.
@@ -14,7 +14,7 @@ do this to see them
 ```bash
 ./main-linux-64 -h
 ```
-### for development
+### for development or to use latest version
 #### requirements
 - I used python Python 3.12.3 while making this, anything lower and you might have some problems
 #### running
@@ -24,10 +24,13 @@ pip install -r requirements.txt
 ```
 run the program
 ```bash
-python3 main.py
+python3 main.py -h
 ```
+### auto solving captchas
+To use the automatic captcha solving feature, you need tesseract installed. Go install it.
 ## notes
-- if use it enough, you might get ip blocked from creating accounts on freedns, there is a bit you can uncomment in the code about this.
+- if use it enough, you might get ip blocked from creating accounts on freedns, see -h for how to fix
+
 - please star if you use it!
 # License
 This project is licensed under the [GNU AGPL v3.0](LICENSE) :)
