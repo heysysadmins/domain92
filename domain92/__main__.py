@@ -43,9 +43,9 @@ parser.add_argument(
 )
 parser.add_argument(
     "--pages",
-    help="number of pages to scrape for tlds, default is 10",
-    type=int,
-    default=10,
+    help="range of pages to scrape, see readme for more info (default is first ten)",
+    type=str,
+    default='10',
 )
 parser.add_argument(
     "--subdomains",
@@ -143,13 +143,30 @@ iplist = {
     "Xenapsis/Ephraim": "66.175.239.22",
 }
 
-
-def finddomains(pages):
+def getdomains(arg:str):
+    if '-' in arg:
+        pagelist = arg.split('-')
+        if len(pagelist) == 2:
+            sp = int(pagelist[0])
+            ep = int(pagelist[1])
+        else:
+            checkprint("Invalid page range")
+            sys.exit()
+    else:
+        sp = 1
+        ep = int(arg)
+    if sp < 1:
+        checkprint("Invalid page range")
+        sys.exit()
+    if sp > ep:
+        checkprint("Invalid page range")
+        sys.exit()
     global domainlist, domainnames
-    for i in range(pages):
+    while sp <= ep:
+        checkprint("getting page " + str(sp))
         html = req.get(
             "https://freedns.afraid.org/domain/registry/?page="
-            + str(pages + 1)
+            + str(sp)
             + "&sort=2&q=",
             headers={
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -173,7 +190,10 @@ def finddomains(pages):
         pattern = r"<a href=/subdomain/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)</a>.*?<td>public</td>"
         matches = re.findall(pattern, html)
         domainlist.extend([match[0] for match in matches])  # Extract only the IDs
-
+def finddomains(pagearg): # sp = start page, ep = end page
+    pages = pagearg.split(',')
+    for page in pages:
+        getdomains(page)
 
 finddomains(args.pages)
 hookbool = False
@@ -289,7 +309,6 @@ def solve(image):
 
 
 def generate_random_string(length):
-    """Generates a random string of letters of given length."""
     letters = string.ascii_lowercase
     return "".join(random.choice(letters) for i in range(length))
 
@@ -353,17 +372,17 @@ def login():
                         checkprint("login successful")
                         hasnotreceived = False
                     else:
-                        checkprint("no match")
+                        checkprint("no match in email! you should generally never get this.")
                         checkprint("error!")
 
                 else:
                     checkprint("checked email")
-                    time.sleep(3)
+                    time.sleep(2)
         except KeyboardInterrupt:
-            # quit
             sys.exit()
-        except:
-            checkprint("login error!")
+        except Exception as e:
+            checkprint('Got error while creating account: ', repr(e))
+            checkprint("if this said something along the lines of 'this account does not exist' then you are blocked, you need to use a proxy.")
             continue
         else:
             break
@@ -436,8 +455,8 @@ def createdomain():
         except KeyboardInterrupt:
             # quit
             sys.exit()
-        except:
-            checkprint("some kinda error!")
+        except Exception as e:
+            checkprint('Got error while creating domain: ', repr(e))
             continue
         else:
             break
@@ -477,5 +496,3 @@ def chooseFrom(dictionary, message):
         checkprint(f"{i+1}. {key}")
     choice = int(input("Choose an option by number: "))
     return list(dictionary.keys())[choice - 1]
-
-init()

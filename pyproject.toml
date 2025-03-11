@@ -1,12 +1,16 @@
 [tool.poetry]
 name = "domain92"
-version = "1.0.1"
+version = "1.0.2"
 description = "A totally rad cli tool to automate freedns link creation"
 authors = ["Cbass92 <contact@cbass92.org>"]
 readme = "README.md"
-license = { text = "AGPL-3.0-or-later", file = "LICENSE" }
-[project.urls]
 repository = "https://github.com/sebastian-92/domain92"
+
+[project]
+name = "domain92"
+dynamic = [ "version" ]
+license = "AGPL-3.0-or-later"
+
 
 
 [tool.poetry.dependencies]
