@@ -190,6 +190,7 @@ def getdomains(arg:str):
         pattern = r"<a href=/subdomain/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)</a>.*?<td>public</td>"
         matches = re.findall(pattern, html)
         domainlist.extend([match[0] for match in matches])  # Extract only the IDs
+        sp = sp+1
 def finddomains(pagearg): # sp = start page, ep = end page
     pages = pagearg.split(',')
     for page in pages:
