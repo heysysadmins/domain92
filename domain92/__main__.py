@@ -285,7 +285,8 @@ def solve(image):
         .convert("1")
         .filter(ImageFilter.RankFilter(3, 3)),
         config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 7",
-    ).replace("\n", "")
+    )
+    text = re.sub(r"[^A-Z]", "", text)
     checkprint("got text: " + text)
     if len(text) != 5 and len(text) != 4:
         checkprint("Retrying with different filters")
@@ -293,15 +294,17 @@ def solve(image):
             image.filter(ImageFilter.GaussianBlur(2)).filter(
                 ImageFilter.MedianFilter(3)
             ),
-            config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 7",
-        ).replace("\n", "")
+            config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 8",
+        )
+        text = re.sub(r'[^A-Za-z]', '', text)
         checkprint("got text: " + text)
     if len(text) != 5 and len(text) != 4:
         checkprint("Retrying with different filters")
         text = pytesseract.image_to_string(
             image,
-            config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 7",
-        ).replace("\n", "")
+            config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 8",
+        )
+        text = re.sub(r'[^A-Za-z]', '', text)
         checkprint("got text: " + text)
     if len(text) != 5 and len(text) != 4:
         checkprint("trying different captcha")
