@@ -382,7 +382,7 @@ def login():
         except KeyboardInterrupt:
             sys.exit()
         except Exception as e:
-            checkprint('Got error while creating account: ', repr(e))
+            checkprint('Got error while creating account: '+ repr(e))
             checkprint("if this said something along the lines of 'this account does not exist' then you are blocked, you need to use a proxy.")
             continue
         else:
@@ -457,7 +457,7 @@ def createdomain():
             # quit
             sys.exit()
         except Exception as e:
-            checkprint('Got error while creating domain: ', repr(e))
+            checkprint('Got error while creating domain: '+  repr(e))
             continue
         else:
             break
