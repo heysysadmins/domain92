@@ -500,3 +500,5 @@ def chooseFrom(dictionary, message):
         checkprint(f"{i+1}. {key}")
     choice = int(input("Choose an option by number: "))
     return list(dictionary.keys())[choice - 1]
+if __name__ == "__main__":
+	init()
