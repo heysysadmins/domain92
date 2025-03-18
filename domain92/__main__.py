@@ -12,6 +12,8 @@ import argparse
 import pytesseract
 import copy
 from PIL import ImageFilter
+import os
+import platform
 
 parser = argparse.ArgumentParser(
     description="Automatically creates links for an ip on freedns"
@@ -55,7 +57,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--auto",
-    help="uses tesseract to automatically solve the captchas, this requres tesseract to be installed",
+    help="uses tesseract to automatically solve the captchas. tesseract is now included, and doesn't need to be installed seperately",
     action="store_true",
 )
 args = parser.parse_args()
@@ -73,6 +75,25 @@ def checkprint(input):
 client = freedns.Client()
 
 checkprint("client initialized")
+def get_data_path():
+    script_dir = os.path.dirname(__file__)
+    checkprint("checking os")
+    if platform.system() == "Windows":
+        filename = os.path.join(script_dir, "data", "windows", "tesseract")
+    elif platform.system() == "Linux":
+        filename = os.path.join(script_dir, "data", "tesseract-linux")
+    else:
+        print("Unsupported OS. This could cause errors with captcha solving.")
+        return None
+    os.environ['TESSDATA_PREFIX'] = os.path.join(script_dir, "data")
+    return filename
+path = get_data_path()
+if path:
+    pytesseract.pytesseract.tesseract_cmd =  path
+    checkprint(f"Using tesseract data file: {path}")
+else:
+    checkprint("No valid tesseract file for this OS.")
+
 domainlist = []
 domainnames = []
 checkprint("finding domains")

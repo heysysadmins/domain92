@@ -127,7 +127,7 @@ domain92 --subdomains sub1,sub2,sub3
 This will use the specified subdomains.
 
 #### --auto
-Uses Tesseract to automatically solve the captchas. This requires Tesseract to be installed.
+Uses Tesseract to automatically solve the captchas. Tesseract is included in versions 1.1.0 and up!
 ```bash
 domain92 --auto
 ```
