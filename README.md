@@ -1,6 +1,6 @@
 # domain92
-A totally rad cli tool to automate freedns link creation. Community Wiki: https://github.com/xXBlackPlasmaXx/domain92-wiki/wiki
-## Function
+A totally rad cli tool to automate freedns link creation. 
+For more in depth information and tutorials, see the [community wiki](https://github.com/sebastian-92/domain92/wiki)!
 This script simplifies account creation and domain making on freedns.afraid.org.
 It uses ading2210's [freedns client](https://github.com/ading2210/freedns-client) and the guerrillamail.com api.
 All you have to do is sit there and solve captchas!
@@ -12,7 +12,7 @@ All you have to do is sit there and solve captchas!
     - [with pip](#with-pip)
       - [install from pypi](#install-from-pypi)
       - [install from github repository](#install-from-github-repository)
-  - [Usage](#usage)
+  - [Basic Usage](#usage)
     - [Arguments](#arguments)
       - [-h, --help](#-h---help)
       - [--number](#--number)
