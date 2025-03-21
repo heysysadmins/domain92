@@ -14,10 +14,11 @@ import copy
 from PIL import ImageFilter
 import os
 import platform
-
+from importlib.metadata import version
 parser = argparse.ArgumentParser(
     description="Automatically creates links for an ip on freedns"
 )
+parser.add_argument('-v', '--version', action='version', version='domain92 installed with version: '+str(version('domain92')), help="show the installed version of this package (domain92)")
 parser.add_argument("--number", help="number of links to generate", type=int)
 parser.add_argument("--ip", help="ip to use", type=str)
 parser.add_argument("--webhook", help="webhook url, do none to not ask", type=str)
