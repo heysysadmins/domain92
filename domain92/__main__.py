@@ -15,6 +15,7 @@ from PIL import ImageFilter
 import os
 import platform
 from importlib.metadata import version
+import lolpython
 parser = argparse.ArgumentParser(
     description="Automatically creates links for an ip on freedns"
 )
@@ -64,7 +65,7 @@ parser.add_argument(
 args = parser.parse_args()
 ip = args.ip
 if not args.silent:
-    tprint("domain92")
+    lolpython.lol_py(text2art("domain92"))
 
 
 def checkprint(input):

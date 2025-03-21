@@ -23,6 +23,7 @@ requests = "^2.32.3"
 art = "^6.4"
 freedns-client = "^0.1.3"
 pytesseract = "^0.3.13"
+lolpython = "^2.2.0"
 
 
 [build-system]
