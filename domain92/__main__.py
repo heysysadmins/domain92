@@ -24,15 +24,14 @@ parser.add_argument("--number", help="number of links to generate", type=int)
 parser.add_argument("--ip", help="ip to use", type=str)
 parser.add_argument("--webhook", help="webhook url, do none to not ask", type=str)
 parser.add_argument(
-    "--use_proxy",
-    help="use proxy (default uses 127.0.0.1:9050)",
-    action="store_true",
+    "--proxy",
+    help="use if you get ip blocked.",
+    type=str
 )
 parser.add_argument(
-    "--proxy",
-    help="if you wanted to use a custom socks5 external proxy, or are running tor on a different port",
-    type=str,
-    default="socks5://127.0.0.1:9050",
+    "--use_tor",
+    help='use a local tor proxy to avoid ip blocking. See wiki for instructions.',
+    action="store_true"
 )
 parser.add_argument(
     "--silent",
@@ -99,7 +98,13 @@ else:
 domainlist = []
 domainnames = []
 checkprint("finding domains")
-if args.use_proxy:
+if args.use_tor:
+    checkprint("using local tor proxy on port 9050")
+    proxies = {"http": 'socks5h://127.0.0.1:9050', "https": 'socks5h://127.0.0.1:9050'}
+    client.session.proxies.update(proxies)
+    checkprint("tor proxy set")
+    
+if args.proxy:
     checkprint("setting proxy with proxy: " + args.proxy)
     proxies = {"http": args.proxy, "https": args.proxy}
     client.session.proxies.update(proxies)
@@ -409,7 +414,20 @@ def login():
             sys.exit()
         except Exception as e:
             checkprint('Got error while creating account: '+ repr(e))
-            checkprint("if this said something along the lines of 'this account does not exist' then you are blocked, you need to use a proxy.")
+            if "Invalid UserID/Pass" in repr(e):
+                checkprint("IP blocked")
+                if args.use_tor:
+                    checkprint("attempting to change tor identity")
+                    try:
+                        from stem import Signal
+                        from stem.control import Controller
+
+                        with Controller.from_port(port = 9051) as controller:
+                            controller.authenticate()
+                            controller.signal(Signal.NEWNYM)
+                            checkprint("tor identity changed")
+                    except Exception as e:
+                        checkprint('Got error while changing tor identity: '+ repr(e))
             continue
         else:
             break
@@ -418,6 +436,20 @@ def login():
 def createlinks(number):
     for i in range(number):
         if i % 5 == 0:
+            if args.use_tor:
+                checkprint("attempting to change tor identity")
+                try:
+                    from stem import Signal
+                    from stem.control import Controller
+
+                    with Controller.from_port(port = 9051) as controller:
+                        controller.authenticate()
+                        controller.signal(Signal.NEWNYM)
+                        checkprint("tor identity changed")
+                except Exception as e:
+                    checkprint('Got error while changing tor identity: '+ repr(e))
+                    checkprint("Not going to try changing identity again")
+                    args.use_tor = False
             login()
         createdomain()
 
