@@ -414,20 +414,18 @@ def login():
             sys.exit()
         except Exception as e:
             checkprint('Got error while creating account: '+ repr(e))
-            if "Invalid UserID/Pass" in repr(e):
-                checkprint("IP blocked")
-                if args.use_tor:
-                    checkprint("attempting to change tor identity")
-                    try:
-                        from stem import Signal
-                        from stem.control import Controller
-
-                        with Controller.from_port(port = 9051) as controller:
-                            controller.authenticate()
-                            controller.signal(Signal.NEWNYM)
-                            checkprint("tor identity changed")
-                    except Exception as e:
-                        checkprint('Got error while changing tor identity: '+ repr(e))
+            if args.use_tor:
+                checkprint("attempting to change tor identity")
+                try:
+                    from stem import Signal
+                    from stem.control import Controller
+                    with Controller.from_port(port = 9051) as controller:
+                        controller.authenticate()
+                        controller.signal(Signal.NEWNYM)
+                        checkprint("tor identity changed")
+                except Exception as e:
+                    checkprint('Got error while changing tor identity: '+ repr(e))
+                    continue
             continue
         else:
             break
