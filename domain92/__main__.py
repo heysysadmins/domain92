@@ -16,6 +16,7 @@ import os
 import platform
 from importlib.metadata import version
 import lolpython
+import time
 parser = argparse.ArgumentParser(
     description="Automatically creates links for an ip on freedns"
 )
@@ -422,6 +423,7 @@ def login():
                     with Controller.from_port(port = 9051) as controller:
                         controller.authenticate()
                         controller.signal(Signal.NEWNYM)
+			time.sleep(controller.get_newnym_wait())
                         checkprint("tor identity changed")
                 except Exception as e:
                     checkprint('Got error while changing tor identity: '+ repr(e))
@@ -443,6 +445,7 @@ def createlinks(number):
                     with Controller.from_port(port = 9051) as controller:
                         controller.authenticate()
                         controller.signal(Signal.NEWNYM)
+			time.sleep(controller.get_newnym_wait())
                         checkprint("tor identity changed")
                 except Exception as e:
                     checkprint('Got error while changing tor identity: '+ repr(e))
