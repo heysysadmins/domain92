@@ -423,7 +423,7 @@ def login():
                     with Controller.from_port(port = 9051) as controller:
                         controller.authenticate()
                         controller.signal(Signal.NEWNYM)
-			time.sleep(controller.get_newnym_wait())
+                        time.sleep(controller.get_newnym_wait())
                         checkprint("tor identity changed")
                 except Exception as e:
                     checkprint('Got error while changing tor identity: '+ repr(e))
@@ -445,7 +445,7 @@ def createlinks(number):
                     with Controller.from_port(port = 9051) as controller:
                         controller.authenticate()
                         controller.signal(Signal.NEWNYM)
-			time.sleep(controller.get_newnym_wait())
+                        time.sleep(controller.get_newnym_wait())
                         checkprint("tor identity changed")
                 except Exception as e:
                     checkprint('Got error while changing tor identity: '+ repr(e))
