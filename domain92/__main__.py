@@ -135,7 +135,7 @@ iplist = {
     "Emerald/Phantom Games/G1mkit": "66.23.198.136 ",
     "Equinox": "74.208.202.111",
     "FalconLink": "104.243.43.17",
-    "Frogiees Arcade": "152.53.1.222",
+    "Frogie's Arcade": "152.53.81.196",
     "Ghost/AJH's Vault": "163.123.192.9",
     "GlacierOS": "66.241.124.98",
     "Hdun": "109.204.188.135",
