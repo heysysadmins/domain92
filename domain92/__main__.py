@@ -17,22 +17,25 @@ import platform
 from importlib.metadata import version
 import lolpython
 import time
+
 parser = argparse.ArgumentParser(
     description="Automatically creates links for an ip on freedns"
 )
-parser.add_argument('-v', '--version', action='version', version='domain92 installed with version: '+str(version('domain92')), help="show the installed version of this package (domain92)")
+parser.add_argument(
+    "-v",
+    "--version",
+    action="version",
+    version="domain92 installed with version: " + str(version("domain92")),
+    help="show the installed version of this package (domain92)",
+)
 parser.add_argument("--number", help="number of links to generate", type=int)
 parser.add_argument("--ip", help="ip to use", type=str)
 parser.add_argument("--webhook", help="webhook url, do none to not ask", type=str)
-parser.add_argument(
-    "--proxy",
-    help="use if you get ip blocked.",
-    type=str
-)
+parser.add_argument("--proxy", help="use if you get ip blocked.", type=str)
 parser.add_argument(
     "--use_tor",
-    help='use a local tor proxy to avoid ip blocking. See wiki for instructions.',
-    action="store_true"
+    help="use a local tor proxy to avoid ip blocking. See wiki for instructions.",
+    action="store_true",
 )
 parser.add_argument(
     "--silent",
@@ -49,7 +52,7 @@ parser.add_argument(
     "--pages",
     help="range of pages to scrape, see readme for more info (default is first ten)",
     type=str,
-    default='10',
+    default="10",
 )
 parser.add_argument(
     "--subdomains",
@@ -77,6 +80,8 @@ def checkprint(input):
 client = freedns.Client()
 
 checkprint("client initialized")
+
+
 def get_data_path():
     script_dir = os.path.dirname(__file__)
     checkprint("checking os")
@@ -87,11 +92,13 @@ def get_data_path():
     else:
         print("Unsupported OS. This could cause errors with captcha solving.")
         return None
-    os.environ['TESSDATA_PREFIX'] = os.path.join(script_dir, "data")
+    os.environ["TESSDATA_PREFIX"] = os.path.join(script_dir, "data")
     return filename
+
+
 path = get_data_path()
 if path:
-    pytesseract.pytesseract.tesseract_cmd =  path
+    pytesseract.pytesseract.tesseract_cmd = path
     checkprint(f"Using tesseract data file: {path}")
 else:
     checkprint("No valid tesseract file for this OS.")
@@ -101,10 +108,10 @@ domainnames = []
 checkprint("finding domains")
 if args.use_tor:
     checkprint("using local tor proxy on port 9050")
-    proxies = {"http": 'socks5h://127.0.0.1:9050', "https": 'socks5h://127.0.0.1:9050'}
+    proxies = {"http": "socks5h://127.0.0.1:9050", "https": "socks5h://127.0.0.1:9050"}
     client.session.proxies.update(proxies)
     checkprint("tor proxy set")
-    
+
 if args.proxy:
     checkprint("setting proxy with proxy: " + args.proxy)
     proxies = {"http": args.proxy, "https": args.proxy}
@@ -172,9 +179,10 @@ iplist = {
     "Xenapsis/Ephraim": "66.175.239.22",
 }
 
-def getdomains(arg:str):
-    if '-' in arg:
-        pagelist = arg.split('-')
+
+def getdomains(arg: str):
+    if "-" in arg:
+        pagelist = arg.split("-")
         if len(pagelist) == 2:
             sp = int(pagelist[0])
             ep = int(pagelist[1])
@@ -219,11 +227,14 @@ def getdomains(arg:str):
         pattern = r"<a href=/subdomain/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)</a>.*?<td>public</td>"
         matches = re.findall(pattern, html)
         domainlist.extend([match[0] for match in matches])  # Extract only the IDs
-        sp = sp+1
-def finddomains(pagearg): # sp = start page, ep = end page
-    pages = pagearg.split(',')
+        sp = sp + 1
+
+
+def finddomains(pagearg):  # sp = start page, ep = end page
+    pages = pagearg.split(",")
     for page in pages:
         getdomains(page)
+
 
 finddomains(args.pages)
 hookbool = False
@@ -325,7 +336,7 @@ def solve(image):
             ),
             config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 8",
         )
-        text = re.sub(r'[^A-Za-z]', '', text)
+        text = re.sub(r"[^A-Za-z]", "", text)
         checkprint("got text: " + text)
     if len(text) != 5 and len(text) != 4:
         checkprint("Retrying with different filters")
@@ -333,7 +344,7 @@ def solve(image):
             image,
             config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 8",
         )
-        text = re.sub(r'[^A-Za-z]', '', text)
+        text = re.sub(r"[^A-Za-z]", "", text)
         checkprint("got text: " + text)
     if len(text) != 5 and len(text) != 4:
         checkprint("trying different captcha")
@@ -405,7 +416,9 @@ def login():
                         checkprint("login successful")
                         hasnotreceived = False
                     else:
-                        checkprint("no match in email! you should generally never get this.")
+                        checkprint(
+                            "no match in email! you should generally never get this."
+                        )
                         checkprint("error!")
 
                 else:
@@ -414,19 +427,20 @@ def login():
         except KeyboardInterrupt:
             sys.exit()
         except Exception as e:
-            checkprint('Got error while creating account: '+ repr(e))
+            checkprint("Got error while creating account: " + repr(e))
             if args.use_tor:
                 checkprint("attempting to change tor identity")
                 try:
                     from stem import Signal
                     from stem.control import Controller
-                    with Controller.from_port(port = 9051) as controller:
+
+                    with Controller.from_port(port=9051) as controller:
                         controller.authenticate()
                         controller.signal(Signal.NEWNYM)
                         time.sleep(controller.get_newnym_wait())
                         checkprint("tor identity changed")
                 except Exception as e:
-                    checkprint('Got error while changing tor identity: '+ repr(e))
+                    checkprint("Got error while changing tor identity: " + repr(e))
                     continue
             continue
         else:
@@ -442,13 +456,13 @@ def createlinks(number):
                     from stem import Signal
                     from stem.control import Controller
 
-                    with Controller.from_port(port = 9051) as controller:
+                    with Controller.from_port(port=9051) as controller:
                         controller.authenticate()
                         controller.signal(Signal.NEWNYM)
                         time.sleep(controller.get_newnym_wait())
                         checkprint("tor identity changed")
                 except Exception as e:
-                    checkprint('Got error while changing tor identity: '+ repr(e))
+                    checkprint("Got error while changing tor identity: " + repr(e))
                     checkprint("Not going to try changing identity again")
                     args.use_tor = False
             login()
@@ -516,7 +530,7 @@ def createdomain():
             # quit
             sys.exit()
         except Exception as e:
-            checkprint('Got error while creating domain: '+  repr(e))
+            checkprint("Got error while creating domain: " + repr(e))
             continue
         else:
             break
@@ -531,23 +545,101 @@ def init():
                 ip = input("Enter the custom IP: ")
             case _:
                 ip = iplist[chosen]
+        args.ip = ip  # Assign the chosen/entered IP back to args
+    else:
+        ip = args.ip  # Ensure ip variable is set even if provided via CLI
+
     if not args.webhook:
         match input("Do you want to use a webhook? (y/n) ").lower():
             case "y":
                 hookbool = True
                 webhook = input("Enter the webhook URL: ")
+                args.webhook = webhook  # Assign entered webhook back to args
             case "n":
                 hookbool = False
+                args.webhook = "none"  # Explicitly set to none if declined
     else:
-        if args.webhook == "none":
+        if args.webhook.lower() == "none":
             hookbool = False
         else:
             hookbool = True
-            webhook = args.webhook
+            webhook = args.webhook  # Ensure webhook variable is set
+
+    if not args.proxy and not args.use_tor:  # Only ask if neither proxy nor tor is set
+        match input("Do you want to use a proxy? (y/n) ").lower():
+            case "y":
+                args.proxy = input(
+                    "Enter the proxy URL (e.g., http://user:pass@host:port): "
+                )
+            case "n":
+                match input(
+                    "Do you want to use Tor (local SOCKS5 proxy on port 9050)? (y/n) "
+                ).lower():
+                    case "y":
+                        args.use_tor = True
+                    case "n":
+                        pass  # Neither proxy nor Tor selected
+
+    if not args.outfile:
+        args.outfile = (
+            input(f"Enter the output filename for domains (default: {args.outfile}): ")
+            or args.outfile
+        )
+
+    if not args.type:
+        args.type = (
+            input(f"Enter the type of DNS record to create (default: {args.type}): ")
+            or args.type
+        )
+
+    if not args.pages:
+        args.pages = (
+            input(
+                f"Enter the page range(s) to scrape (e.g., 1-10 or 5,8,10-12, default: {args.pages}): "
+            )
+            or args.pages
+        )
+
+    if args.subdomains == "random":
+        match input("Use random subdomains? (y/n) ").lower():
+            case "n":
+                args.subdomains = input(
+                    "Enter comma-separated list of subdomains to use: "
+                )
+            case "y":
+                pass
+    if not args.number:
+        num_links_input = input("Enter the number of links to create: ")
+        try:
+            num_links = int(num_links_input)
+            createlinks(num_links)
+        except ValueError:
+            checkprint("Invalid number entered. Exiting.")
+            sys.exit(1)
+    if not args.auto:
+        match input("Use automatic captcha solving? (y/n) ").lower():
+            case "y":
+                args.auto = True
+            case "n":
+                args.auto = False
+
+    if args.use_tor:
+        checkprint("using local tor proxy on port 9050")
+        proxies = {
+            "http": "socks5h://127.0.0.1:9050",
+            "https": "socks5h://127.0.0.1:9050",
+        }
+        client.session.proxies.update(proxies)
+        checkprint("tor proxy set")
+    elif args.proxy:
+        checkprint("setting proxy with proxy: " + args.proxy)
+        proxies = {"http": args.proxy, "https": args.proxy}
+        client.session.proxies.update(proxies)
+        checkprint("proxy set")
+    finddomains(args.pages)
+
     if args.number:
         createlinks(args.number)
-    else:
-        createlinks(int(input("Enter the number of links to create: ")))
 
 
 def chooseFrom(dictionary, message):
@@ -556,5 +648,7 @@ def chooseFrom(dictionary, message):
         checkprint(f"{i+1}. {key}")
     choice = int(input("Choose an option by number: "))
     return list(dictionary.keys())[choice - 1]
+
+
 if __name__ == "__main__":
-	init()
+    init()
