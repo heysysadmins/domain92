@@ -31,7 +31,7 @@ parser.add_argument(
 parser.add_argument("--number", help="number of links to generate", type=int)
 parser.add_argument("--ip", help="ip to use", type=str)
 parser.add_argument("--webhook", help="webhook url, do none to not ask", type=str)
-parser.add_argument("--proxy", help="use if you get ip blocked.", type=str)
+parser.add_argument("--proxy", help="use if you get ip blocked.", type=str, default='none')
 parser.add_argument(
     "--use_tor",
     help="use a local tor proxy to avoid ip blocking. See wiki for instructions.",
@@ -619,7 +619,7 @@ def init():
         client.session.proxies.update(proxies)
         checkprint("tor proxy set")
     
-    if args.proxy:
+    if args.proxy != 'none':
         checkprint("setting proxy with proxy: " + args.proxy)
         proxies = {"http": args.proxy, "https": args.proxy}
         client.session.proxies.update(proxies)
