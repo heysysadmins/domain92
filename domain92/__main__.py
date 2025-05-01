@@ -106,17 +106,7 @@ else:
 domainlist = []
 domainnames = []
 checkprint("finding domains")
-if args.use_tor:
-    checkprint("using local tor proxy on port 9050")
-    proxies = {"http": "socks5h://127.0.0.1:9050", "https": "socks5h://127.0.0.1:9050"}
-    client.session.proxies.update(proxies)
-    checkprint("tor proxy set")
 
-if args.proxy:
-    checkprint("setting proxy with proxy: " + args.proxy)
-    proxies = {"http": args.proxy, "https": args.proxy}
-    client.session.proxies.update(proxies)
-    checkprint("proxy set")
 iplist = {
     "custom": "custom",
     "1346.lol": "159.54.169.0",
@@ -627,13 +617,11 @@ def init():
 
     if args.use_tor:
         checkprint("using local tor proxy on port 9050")
-        proxies = {
-            "http": "socks5h://127.0.0.1:9050",
-            "https": "socks5h://127.0.0.1:9050",
-        }
+        proxies = {"http": "socks5h://127.0.0.1:9050", "https": "socks5h://127.0.0.1:9050"}
         client.session.proxies.update(proxies)
         checkprint("tor proxy set")
-    elif args.proxy:
+    
+    if args.proxy:
         checkprint("setting proxy with proxy: " + args.proxy)
         proxies = {"http": args.proxy, "https": args.proxy}
         client.session.proxies.update(proxies)
