@@ -225,8 +225,6 @@ def finddomains(pagearg):  # sp = start page, ep = end page
     for page in pages:
         getdomains(page)
 
-
-finddomains(args.pages)
 hookbool = False
 webhook = ""
 if args.subdomains != "random":
@@ -555,7 +553,7 @@ def init():
             hookbool = True
             webhook = args.webhook  # Ensure webhook variable is set
 
-    if (not args.proxy) and (not args.use_tor) and (args.proxy != 'none'):  # Only ask if neither proxy nor tor is set
+    if (not args.proxy) and (not args.use_tor):  # Only ask if neither proxy nor tor is set
         match input("Do you want to use a proxy? (y/n) ").lower():
             case "y":
                 args.proxy = input(
