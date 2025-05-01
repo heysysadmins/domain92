@@ -600,7 +600,7 @@ def init():
             or args.pages
         )
 
-    if args.subdomains == "random":
+    if not args.subdomains:
         match input("Use random subdomains? (y/n) ").lower():
             case "n":
                 args.subdomains = input(
