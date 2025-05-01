@@ -579,6 +579,8 @@ def init():
                         args.use_tor = True
                     case "n":
                         pass  # Neither proxy nor Tor selected
+    if args.proxy == 'none':
+        args.proxy == False
 
     if not args.outfile:
         args.outfile = (
