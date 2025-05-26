@@ -31,7 +31,9 @@ parser.add_argument(
 parser.add_argument("--number", help="number of links to generate", type=int)
 parser.add_argument("--ip", help="ip to use", type=str)
 parser.add_argument("--webhook", help="webhook url, do none to not ask", type=str)
-parser.add_argument("--proxy", help="use if you get ip blocked.", type=str, default='none')
+parser.add_argument(
+    "--proxy", help="use if you get ip blocked.", type=str, default="none"
+)
 parser.add_argument(
     "--use_tor",
     help="use a local tor proxy to avoid ip blocking. See wiki for instructions.",
@@ -52,7 +54,6 @@ parser.add_argument(
     "--pages",
     help="range of pages to scrape, see readme for more info (default is first ten)",
     type=str,
-    default="10",
 )
 parser.add_argument(
     "--subdomains",
@@ -170,26 +171,46 @@ iplist = {
 }
 
 
-def getdomains(arg: str):
-    if "-" in arg:
-        pagelist = arg.split("-")
-        if len(pagelist) == 2:
-            sp = int(pagelist[0])
-            ep = int(pagelist[1])
+def getpagelist(arg):
+    arg = arg.strip()
+    if "," in arg:
+        arglist = arg.split(",")
+        pagelist = []
+        for item in arglist:
+            if "-" in item:
+                sublist = item.split("-")
+                if len(sublist) == 2:
+                    sp = int(sublist[0])
+                    ep = int(sublist[1])
+                    if sp < 1 or sp > ep:
+                        checkprint("Invalid page range: " + item)
+                        sys.exit()
+                    pagelist.extend(range(sp, ep + 1))
+                else:
+                    checkprint("Invalid page range: " + item)
+                    sys.exit()
+        return pagelist
+    elif "-" in arg:
+        pagelist = []
+        sublist = arg.split("-")
+        if len(sublist) == 2:
+            sp = int(sublist[0])
+            ep = int(sublist[1])
+            if sp < 1 or sp > ep:
+                checkprint("Invalid page range: " + arg)
+                sys.exit()
+            pagelist.extend(range(sp, ep + 1))
         else:
-            checkprint("Invalid page range")
+            checkprint("Invalid page range: " + arg)
             sys.exit()
+        return pagelist
     else:
-        sp = 1
-        ep = int(arg)
-    if sp < 1:
-        checkprint("Invalid page range")
-        sys.exit()
-    if sp > ep:
-        checkprint("Invalid page range")
-        sys.exit()
+        return [int(arg)]
+
+
+def getdomains(arg):
     global domainlist, domainnames
-    while sp <= ep:
+    for sp in getpagelist(arg):
         checkprint("getting page " + str(sp))
         html = req.get(
             "https://freedns.afraid.org/domain/registry/?page="
@@ -217,13 +238,13 @@ def getdomains(arg: str):
         pattern = r"<a href=/subdomain/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)</a>.*?<td>public</td>"
         matches = re.findall(pattern, html)
         domainlist.extend([match[0] for match in matches])  # Extract only the IDs
-        sp = sp + 1
 
 
 def finddomains(pagearg):  # sp = start page, ep = end page
     pages = pagearg.split(",")
     for page in pages:
         getdomains(page)
+
 
 hookbool = False
 webhook = ""
@@ -536,6 +557,13 @@ def init():
         args.ip = ip  # Assign the chosen/entered IP back to args
     else:
         ip = args.ip  # Ensure ip variable is set even if provided via CLI
+    if not args.pages:
+        args.pages = (
+            input(
+                "Enter the page range(s) to scrape (e.g., 15 or 5,8,10-12, default: 10): "
+            )
+            or "10"
+        )
 
     if not args.webhook:
         match input("Do you want to use a webhook? (y/n) ").lower():
@@ -553,7 +581,9 @@ def init():
             hookbool = True
             webhook = args.webhook  # Ensure webhook variable is set
 
-    if (not args.proxy) and (not args.use_tor):  # Only ask if neither proxy nor tor is set
+    if (not args.proxy) and (
+        not args.use_tor
+    ):  # Only ask if neither proxy nor tor is set
         match input("Do you want to use a proxy? (y/n) ").lower():
             case "y":
                 args.proxy = input(
@@ -567,7 +597,7 @@ def init():
                         args.use_tor = True
                     case "n":
                         pass  # Neither proxy nor Tor selected
-    if args.proxy == 'none':
+    if args.proxy == "none":
         args.proxy == False
 
     if not args.outfile:
@@ -602,7 +632,7 @@ def init():
         num_links_input = input("Enter the number of links to create: ")
         try:
             num_links = int(num_links_input)
-            createlinks(num_links)
+            args.number = num_links
         except ValueError:
             checkprint("Invalid number entered. Exiting.")
             sys.exit(1)
@@ -615,19 +645,22 @@ def init():
 
     if args.use_tor:
         checkprint("using local tor proxy on port 9050")
-        proxies = {"http": "socks5h://127.0.0.1:9050", "https": "socks5h://127.0.0.1:9050"}
+        proxies = {
+            "http": "socks5h://127.0.0.1:9050",
+            "https": "socks5h://127.0.0.1:9050",
+        }
         client.session.proxies.update(proxies)
         checkprint("tor proxy set")
-    
-    if args.proxy != 'none':
+
+    if args.proxy != "none":
         checkprint("setting proxy with proxy: " + args.proxy)
         proxies = {"http": args.proxy, "https": args.proxy}
         client.session.proxies.update(proxies)
         checkprint("proxy set")
     finddomains(args.pages)
-
     if args.number:
         createlinks(args.number)
+    
 
 
 def chooseFrom(dictionary, message):
