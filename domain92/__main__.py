@@ -491,19 +491,20 @@ def createdomain():
             else:
                 subdomainy = random.choice(args.subdomains.split(","))
             client.create_subdomain(capcha, args.type, subdomainy, random_domain_id, ip)
+            tld = args.single_tld or domainnames[domainlist.index(int(random_domain_id))]
             checkprint("domain created")
             checkprint(
                 "link: http://"
                 + subdomainy
                 + "."
-                + domainnames[domainlist.index(random_domain_id)]
+                + tld
             )
             domainsdb = open(args.outfile, "a")
             domainsdb.write(
                 "\nhttp://"
                 + subdomainy
                 + "."
-                + domainnames[domainlist.index(random_domain_id)]
+                + tld
             )
             domainsdb.close()
             if hookbool:
@@ -514,7 +515,7 @@ def createdomain():
                         "content": "Domain created:\nhttp://"
                         + subdomainy
                         + "."
-                        + domainnames[domainlist.index(random_domain_id)]
+                        + tld
                         + "\n ip: "
                         + ip
                     },
@@ -653,12 +654,10 @@ def init():
         client.session.proxies.update(proxies)
         checkprint("proxy set")
     if args.single_tld:
-        print("HERE")
-        exit()
         checkprint("Using single domain mode")
         checkprint("Finding domain ID for: " + args.single_tld)
         non_random_domain_id = find_domain_id(args.single_tld)
-        checkprint(f"Using single domain ID: {nonrandom_domain_id}")
+        checkprint(f"Using single domain ID: {non_random_domain_id}")
     else:
         finddomains(args.pages)
 
