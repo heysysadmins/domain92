@@ -66,10 +66,13 @@ parser.add_argument(
     help="uses tesseract to automatically solve the captchas. tesseract is now included, and doesn't need to be installed seperately",
     action="store_true",
 )
+parser.add_argument("--single_tld", help="only create links for a single tld", type=str)
 args = parser.parse_args()
 ip = args.ip
 if not args.silent:
     lolpython.lol_py(text2art("domain92"))
+    print("made with <3 by Cbass92")
+    time.sleep(1)
 
 
 def checkprint(input):
@@ -106,69 +109,11 @@ else:
 
 domainlist = []
 domainnames = []
-checkprint("finding domains")
-
-iplist = {
-    "custom": "custom",
-    "1346.lol": "159.54.169.0",
-    "Acceleration": "141.148.134.230",
-    "Artclass": "198.251.90.4",
-    "Astro": "104.243.37.85",
-    "Astroid": "5.161.68.227",
-    "Astroid (2)": "152.53.53.8",
-    "Boredom": "152.53.36.42",
-    "Bolt": "104.36.86.24",
-    "Breakium": "172.93.100.82",
-    "BrunysIXLWork": "104.36.85.249",
-    "Canlite": "104.36.85.249",
-    "Catway": "A-92.38.148.24",
-    "Comet/PXLNOVA": "172.66.46.221",
-    "Core": "207.211.183.185",
-    "Croxy Proxy": "157.230.79.247",
-    "Croxy Proxy (2)": "143.244.204.138",
-    "Croxy Proxy (3)": "157.230.113.153",
-    "Doge Unblocker": "104.243.38.142",
-    "DuckHTML": "104.167.215.179",
-    "Duckflix": "104.21.54.237",
-    "Emerald/Phantom Games/G1mkit": "66.23.198.136 ",
-    "Equinox": "74.208.202.111",
-    "FalconLink": "104.243.43.17",
-    "Frogie's Arcade": "152.53.81.196",
-    "Ghost/AJH's Vault": "163.123.192.9",
-    "GlacierOS": "66.241.124.98",
-    "Hdun": "109.204.188.135",
-    "Interstellar": "66.23.193.126",
-    "Kasm 1": "145.40.75.101",
-    "Kasm 2": "142.93.68.85",
-    "Kasm 3": "165.22.33.54",
-    "Kazwire": "103.195.102.132 ",
-    "Light": "104.243.45.193",
-    "Lunaar": "164.152.26.189",
-    "Mocha": "45.88.186.218",
-    "Moonlight": "172.93.104.11",
-    "Onyx": "172.67.158.114",
-    "Plexile Arcade": "216.24.57.1",
-    "Pulsar": "172.93.106.140",
-    "Ruby": "104.36.86.104",
-    "Rammerhead IP": "108.181.32.77",
-    "Selenite (Ultrabrowse server)": "104.131.74.161",
-    "Selenite": "65.109.112.222",
-    "Seraph": "15.235.166.92",
-    "Shadow": "104.243.38.18",
-    "Space": "104.243.38.145",
-    "Sunset": "107.206.53.96",
-    "Sunnys Gym": "69.48.204.208",
-    "Szvy Central": "152.53.38.100",
-    "Tinf0il": "129.213.65.72",
-    "The Pizza Edition": "104.36.84.31",
-    "thepegleg": "104.36.86.105",
-    "UniUB": "104.243.42.228",
-    "Utopia": "132.145.197.109",
-    "Velara": "185.211.4.69",
-    "Void Network": "141.193.68.52",
-    "Waves": "93.127.130.22",
-    "Xenapsis/Ephraim": "66.175.239.22",
-}
+checkprint("getting ip list")
+iplist = req.get(
+    "https://raw.githubusercontent.com/sebastian-92/byod-ip/refs/heads/master/byod.json"
+).text
+iplist = eval(iplist)
 
 
 def getpagelist(arg):
@@ -237,13 +182,49 @@ def getdomains(arg):
         domainnames.extend(re.findall(pattern, html))
         pattern = r"<a href=/subdomain/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)</a>.*?<td>public</td>"
         matches = re.findall(pattern, html)
-        domainlist.extend([match[0] for match in matches])  # Extract only the IDs
+        domainlist.extend([match[0] for match in matches])
+        sp = sp + 1
 
 
-def finddomains(pagearg):  # sp = start page, ep = end page
-    pages = pagearg.split(",")
-    for page in pages:
-        getdomains(page)
+def find_domain_id(domain_name):
+    found = False
+    page = 1
+    names = []
+    ids = []
+    html = req.get(
+        "https://freedns.afraid.org/domain/registry/?page="
+        + str(page)
+        + "&q="
+        + domain_name,
+        headers={
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Cache-Control": "max-age=0",
+            "Connection": "keep-alive",
+            "DNT": "1",
+            "Host": "freedns.afraid.org",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Upgrade-Insecure-Requests": "1",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+            "sec-ch-ua": '"Not;A=Brand";v="24", "Chromium";v="128"',
+            "sec-ch-ua-platform": "Linux",
+        },
+    ).text
+    pattern = r"<a href=/subdomain/edit\.php\?edit_domain_id=\d+>([\w.-]+)</a>.*?<td>public</td>"
+    names.extend(re.findall(pattern, html))
+    pattern = r"<a href=\/subdomain\/edit\.php\?edit_domain_id=([0-9]+)><font color=red>(?:.+\..+)<\/font><\/a>"
+    matches = re.findall(pattern, html)
+    ids.extend([match[0] for match in matches])
+    if len(ids) > 0:
+        found = True
+        checkprint(f"Found domain ID: {ids[0]}")
+    else:
+        raise Exception("Domain ID not found")
+    return ids[0]
+
 
 
 hookbool = False
@@ -500,7 +481,11 @@ def createdomain():
                 checkprint("showing captcha")
                 image.show()
                 capcha = input("Enter the captcha code: ")
-            random_domain_id = random.choice(domainlist)
+
+            if args.single_tld:
+                random_domain_id = non_random_domain_id
+            else:
+                random_domain_id = random.choice(domainlist)
             if args.subdomains == "random":
                 subdomainy = generate_random_string(10)
             else:
@@ -545,8 +530,17 @@ def createdomain():
             break
 
 
+non_random_domain_id = None
+
+
+def finddomains(pagearg):
+    pages = pagearg.split(",")
+    for page in pages:
+        getdomains(page)
+
+
 def init():
-    global args, ip, iplist, webhook, hookbool
+    global args, ip, iplist, webhook, hookbool, non_random_domain_id
     if not args.ip:
         chosen = chooseFrom(iplist, "Choose an IP to use:")
         match chosen:
@@ -628,6 +622,7 @@ def init():
                 )
             case "y":
                 pass
+            
     if not args.number:
         num_links_input = input("Enter the number of links to create: ")
         try:
@@ -657,7 +652,16 @@ def init():
         proxies = {"http": args.proxy, "https": args.proxy}
         client.session.proxies.update(proxies)
         checkprint("proxy set")
-    finddomains(args.pages)
+    if args.single_tld:
+        print("HERE")
+        exit()
+        checkprint("Using single domain mode")
+        checkprint("Finding domain ID for: " + args.single_tld)
+        non_random_domain_id = find_domain_id(args.single_tld)
+        checkprint(f"Using single domain ID: {nonrandom_domain_id}")
+    else:
+        finddomains(args.pages)
+
     if args.number:
         createlinks(args.number)
     
