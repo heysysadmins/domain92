@@ -187,9 +187,7 @@ def getdomains(arg):
 
 
 def find_domain_id(domain_name):
-    found = False
     page = 1
-    names = []
     ids = []
     html = req.get(
         "https://freedns.afraid.org/domain/registry/?page="
@@ -213,17 +211,13 @@ def find_domain_id(domain_name):
             "sec-ch-ua-platform": "Linux",
         },
     ).text
-    pattern = r"<a href=/subdomain/edit\.php\?edit_domain_id=\d+>([\w.-]+)</a>.*?<td>public</td>"
-    names.extend(re.findall(pattern, html))
     pattern = r"<a href=\/subdomain\/edit\.php\?edit_domain_id=([0-9]+)><font color=red>(?:.+\..+)<\/font><\/a>"
     matches = re.findall(pattern, html)
-    ids.extend([match[0] for match in matches])
-    if len(ids) > 0:
-        found = True
-        checkprint(f"Found domain ID: {ids[0]}")
+    if len(matches) > 0:
+        checkprint(f"Found domain ID: {matches[0]}")
     else:
         raise Exception("Domain ID not found")
-    return ids[0]
+    return matches[0]
 
 
 
