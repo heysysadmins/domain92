@@ -178,13 +178,13 @@ def getdomains(arg):
                 "sec-ch-ua-platform": "Linux",
             },
         ).text
-        pattern = r"<a href=/subdomain/edit\.php\?edit_domain_id=\d+>([\w.-]+)</a>.*?<td>public</td>"
-        domainnames.extend(re.findall(pattern, html))
-        pattern = r"<a href=/subdomain/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)</a>.*?<td>public</td>"
-        matches = re.findall(pattern, html)
-        domainlist.extend([match[0] for match in matches])
-        sp = sp + 1
+        pattern = r"<a href=\/subdomain\/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)<\/a>(.+\..+)<td>public<\/td>"
 
+        pattern = r"<a href=\/subdomain\/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)<\/a>(?:.+\..+)<td>public<\/td>"
+        matches = re.findall(pattern, html)
+                domainnames.extend([match[1] for match in re.findall(pattern, html)])
+        domainlist.extend([match[0] for match in matches])
+        print(domainlist)
 
 def find_domain_id(domain_name):
     page = 1
@@ -485,7 +485,7 @@ def createdomain():
             else:
                 subdomainy = random.choice(args.subdomains.split(","))
             client.create_subdomain(capcha, args.type, subdomainy, random_domain_id, ip)
-            tld = args.single_tld or domainnames[domainlist.index(int(random_domain_id))]
+            tld = args.single_tld or domainnames[domainlist.index(random_domain_id)]
             checkprint("domain created")
             checkprint(
                 "link: http://"
