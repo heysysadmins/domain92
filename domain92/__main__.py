@@ -179,10 +179,8 @@ def getdomains(arg):
             },
         ).text
         pattern = r"<a href=\/subdomain\/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)<\/a>(.+\..+)<td>public<\/td>"
-
-        pattern = r"<a href=\/subdomain\/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)<\/a>(?:.+\..+)<td>public<\/td>"
         matches = re.findall(pattern, html)
-                domainnames.extend([match[1] for match in re.findall(pattern, html)])
+        domainnames.extend([match[1] for match in matches])
         domainlist.extend([match[0] for match in matches])
         print(domainlist)
 
