@@ -28,4 +28,4 @@ pip install git+https://github.com/sebastian-92/domain92
 ### See the [community wiki](https://github.com/sebastian-92/domain92/wiki/Usage) for up-to-date usage instructions
 #### please star on [github](https://github.com/sebastian-92/domain92) if you use this!
 # License
-This project is licensed under the [GNU AGPL v3.0](LICENSE) :)
+This project is licensed under the [GNU GPL v3.0](LICENSE) :)
