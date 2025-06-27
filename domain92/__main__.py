@@ -94,7 +94,9 @@ def get_data_path():
     elif platform.system() == "Linux":
         filename = os.path.join(script_dir, "data", "tesseract-linux")
     else:
-        print("Unsupported OS. This could cause errors with captcha solving.")
+        print(
+            "Unsupported OS. This could cause errors with captcha solving. Please install tesseract manually."
+        )
         return None
     os.environ["TESSDATA_PREFIX"] = os.path.join(script_dir, "data")
     return filename
@@ -103,7 +105,7 @@ def get_data_path():
 path = get_data_path()
 if path:
     pytesseract.pytesseract.tesseract_cmd = path
-    checkprint(f"Using tesseract data file: {path}")
+    checkprint(f"Using tesseract executable: {path}")
 else:
     checkprint("No valid tesseract file for this OS.")
 
@@ -182,11 +184,10 @@ def getdomains(arg):
         matches = re.findall(pattern, html)
         domainnames.extend([match[1] for match in matches])
         domainlist.extend([match[0] for match in matches])
-        print(domainlist)
+
 
 def find_domain_id(domain_name):
     page = 1
-    ids = []
     html = req.get(
         "https://freedns.afraid.org/domain/registry/?page="
         + str(page)
@@ -216,7 +217,6 @@ def find_domain_id(domain_name):
     else:
         raise Exception("Domain ID not found")
     return matches[0]
-
 
 
 hookbool = False
@@ -306,30 +306,12 @@ def solve(image):
         image.filter(ImageFilter.GaussianBlur(1))
         .convert("1")
         .filter(ImageFilter.RankFilter(3, 3)),
-        config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 7",
+        config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 12 -l freednsocr",
     )
-    text = re.sub(r"[^A-Z]", "", text)
-    checkprint("got text: " + text)
+    text = text.strip().upper()
+    checkprint("captcha solved: " + text)
     if len(text) != 5 and len(text) != 4:
-        checkprint("Retrying with different filters")
-        text = pytesseract.image_to_string(
-            image.filter(ImageFilter.GaussianBlur(2)).filter(
-                ImageFilter.MedianFilter(3)
-            ),
-            config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 8",
-        )
-        text = re.sub(r"[^A-Za-z]", "", text)
-        checkprint("got text: " + text)
-    if len(text) != 5 and len(text) != 4:
-        checkprint("Retrying with different filters")
-        text = pytesseract.image_to_string(
-            image,
-            config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 8",
-        )
-        text = re.sub(r"[^A-Za-z]", "", text)
-        checkprint("got text: " + text)
-    if len(text) != 5 and len(text) != 4:
-        checkprint("trying different captcha")
+        checkprint("captcha doesn't match correct pattern, trying different captcha")
         text = solve(getcaptcha())
     return text
 
@@ -485,19 +467,9 @@ def createdomain():
             client.create_subdomain(capcha, args.type, subdomainy, random_domain_id, ip)
             tld = args.single_tld or domainnames[domainlist.index(random_domain_id)]
             checkprint("domain created")
-            checkprint(
-                "link: http://"
-                + subdomainy
-                + "."
-                + tld
-            )
+            checkprint("link: http://" + subdomainy + "." + tld)
             domainsdb = open(args.outfile, "a")
-            domainsdb.write(
-                "\nhttp://"
-                + subdomainy
-                + "."
-                + tld
-            )
+            domainsdb.write("\nhttp://" + subdomainy + "." + tld)
             domainsdb.close()
             if hookbool:
                 checkprint("notifying webhook")
@@ -615,7 +587,7 @@ def init():
                 )
             case "y":
                 pass
-            
+
     if not args.number:
         num_links_input = input("Enter the number of links to create: ")
         try:
@@ -655,7 +627,6 @@ def init():
 
     if args.number:
         createlinks(args.number)
-    
 
 
 def chooseFrom(dictionary, message):
