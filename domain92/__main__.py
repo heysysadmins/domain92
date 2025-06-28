@@ -306,7 +306,7 @@ def solve(image):
         image.filter(ImageFilter.GaussianBlur(1))
         .convert("1")
         .filter(ImageFilter.RankFilter(3, 3)),
-        config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 12 -l freednsocr",
+        config="-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ --psm 13 -l freednsocr",
     )
     text = text.strip().upper()
     checkprint("captcha solved: " + text)
