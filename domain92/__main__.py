@@ -1,7 +1,6 @@
 from PIL import Image
 from io import BytesIO
-import time
-import requests as req
+import time as _time
 import re
 import random
 import string
@@ -16,10 +15,13 @@ import os
 import platform
 from importlib.metadata import version
 import lolpython
-import time
+import asyncio
+import aiohttp
+from functools import partial
 
+# ---------- CLI ----------
 parser = argparse.ArgumentParser(
-    description="Automatically creates links for an ip on freedns"
+    description="Automatically creates links for an ip on freedns (async aiohttp version)"
 )
 parser.add_argument(
     "-v",
@@ -68,11 +70,13 @@ parser.add_argument(
 )
 parser.add_argument("--single_tld", help="only create links for a single tld", type=str)
 args = parser.parse_args()
+
 ip = args.ip
+
 if not args.silent:
     lolpython.lol_py(text2art("domain92"))
     print("made with <3 by Cbass92")
-    time.sleep(1)
+    _time.sleep(1)
 
 
 def checkprint(input):
@@ -81,11 +85,12 @@ def checkprint(input):
         print(input)
 
 
+# ---------- freedns client ----------
 client = freedns.Client()
-
 checkprint("client initialized")
 
 
+# ---------- tesseract setup ----------
 def get_data_path():
     script_dir = os.path.dirname(__file__)
     checkprint("checking os")
@@ -109,129 +114,26 @@ if path:
 else:
     checkprint("No valid tesseract file for this OS.")
 
+
+# ---------- globals ----------
 domainlist = []
 domainnames = []
 checkprint("getting ip list")
-iplist = req.get(
-    "https://raw.githubusercontent.com/heysysadmins/byod-ip/refs/heads/master/byod.json"
-).text
-iplist = eval(iplist)
-
-
-def getpagelist(arg):
-    arg = arg.strip()
-    if "," in arg:
-        arglist = arg.split(",")
-        pagelist = []
-        for item in arglist:
-            if "-" in item:
-                sublist = item.split("-")
-                if len(sublist) == 2:
-                    sp = int(sublist[0])
-                    ep = int(sublist[1])
-                    if sp < 1 or sp > ep:
-                        checkprint("Invalid page range: " + item)
-                        sys.exit()
-                    pagelist.extend(range(sp, ep + 1))
-                else:
-                    checkprint("Invalid page range: " + item)
-                    sys.exit()
-        return pagelist
-    elif "-" in arg:
-        pagelist = []
-        sublist = arg.split("-")
-        if len(sublist) == 2:
-            sp = int(sublist[0])
-            ep = int(sublist[1])
-            if sp < 1 or sp > ep:
-                checkprint("Invalid page range: " + arg)
-                sys.exit()
-            pagelist.extend(range(sp, ep + 1))
-        else:
-            checkprint("Invalid page range: " + arg)
-            sys.exit()
-        return pagelist
-    else:
-        return [int(arg)]
-
-
-def getdomains(arg):
-    global domainlist, domainnames
-    for sp in getpagelist(arg):
-        checkprint("getting page " + str(sp))
-        html = req.get(
-            "https://freedns.afraid.org/domain/registry/?page="
-            + str(sp)
-            + "&sort=2&q=",
-            headers={
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-                "Accept-Encoding": "gzip, deflate, br",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Cache-Control": "max-age=0",
-                "Connection": "keep-alive",
-                "DNT": "1",
-                "Host": "freedns.afraid.org",
-                "Sec-Fetch-Dest": "document",
-                "Sec-Fetch-Mode": "navigate",
-                "Sec-Fetch-Site": "none",
-                "Upgrade-Insecure-Requests": "1",
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-                "sec-ch-ua": '"Not;A=Brand";v="24", "Chromium";v="128"',
-                "sec-ch-ua-platform": "Linux",
-            },
-        ).text
-        pattern = r"<a href=\/subdomain\/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)<\/a>(.+\..+)<td>public<\/td>"
-        matches = re.findall(pattern, html)
-        domainnames.extend([match[1] for match in matches])
-        domainlist.extend([match[0] for match in matches])
-
-
-def find_domain_id(domain_name):
-    page = 1
-    html = req.get(
-        "https://freedns.afraid.org/domain/registry/?page="
-        + str(page)
-        + "&q="
-        + domain_name,
-        headers={
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Cache-Control": "max-age=0",
-            "Connection": "keep-alive",
-            "DNT": "1",
-            "Host": "freedns.afraid.org",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
-            "Upgrade-Insecure-Requests": "1",
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-            "sec-ch-ua": '"Not;A=Brand";v="24", "Chromium";v="128"',
-            "sec-ch-ua-platform": "Linux",
-        },
-    ).text
-    pattern = r"<a href=\/subdomain\/edit\.php\?edit_domain_id=([0-9]+)><font color=red>(?:.+\..+)<\/font><\/a>"
-    matches = re.findall(pattern, html)
-    if len(matches) > 0:
-        checkprint(f"Found domain ID: {matches[0]}")
-    else:
-        raise Exception("Domain ID not found")
-    return matches[0]
-
+# iplist will be fetched async later
+iplist = {}
 
 hookbool = False
 webhook = ""
-if args.subdomains != "random":
-    checkprint("Subdomains set to:")
-    checkprint(args.subdomains.split(","))
-checkprint("ready")
+non_random_domain_id = None
 
 
-def getcaptcha():
-    return Image.open(BytesIO(client.get_captcha()))
+# ---------- helpers ----------
+def generate_random_string(length):
+    letters = string.ascii_lowercase
+    return "".join(random.choice(letters) for i in range(length))
 
 
-def denoise(img):
+def denoise(img: Image.Image) -> Image.Image:
     imgarr = img.load()
     newimg = Image.new("RGB", img.size)
     newimgarr = newimg.load()
@@ -300,7 +202,7 @@ def denoise(img):
     return newimg
 
 
-def solve(image):
+def solve_sync(image: Image.Image) -> str:
     image = denoise(image)
     text = pytesseract.image_to_string(
         image.filter(ImageFilter.GaussianBlur(1))
@@ -310,39 +212,160 @@ def solve(image):
     )
     text = text.strip().upper()
     checkprint("captcha solved: " + text)
-    if len(text) != 5 and len(text) != 4:
+    if len(text) not in (4, 5):
         checkprint("captcha doesn't match correct pattern, trying different captcha")
-        text = solve(getcaptcha())
+        # We'll return empty here so caller can fetch new captcha
+        return ""
     return text
 
 
-def generate_random_string(length):
-    letters = string.ascii_lowercase
-    return "".join(random.choice(letters) for i in range(length))
+# ---------- aiohttp utility functions ----------
+async def fetch_text(session: aiohttp.ClientSession, url: str, **kwargs) -> str:
+    async with session.get(url, **kwargs) as resp:
+        resp.raise_for_status()
+        return await resp.text()
 
 
-def login():
+async def fetch_json(session: aiohttp.ClientSession, url: str, **kwargs) -> dict:
+    async with session.get(url, **kwargs) as resp:
+        resp.raise_for_status()
+        return await resp.json()
+
+
+async def post_json(session: aiohttp.ClientSession, url: str, json_payload: dict, **kwargs) -> dict:
+    async with session.post(url, json=json_payload, **kwargs) as resp:
+        # sometimes webhook returns 204 or text
+        if resp.status == 204:
+            return {}
+        try:
+            return await resp.json()
+        except Exception:
+            return {"status": resp.status, "text": await resp.text()}
+
+
+# ---------- parsing page ranges ----------
+def getpagelist(arg):
+    arg = arg.strip()
+    if "," in arg:
+        arglist = arg.split(",")
+        pagelist = []
+        for item in arglist:
+            if "-" in item:
+                sublist = item.split("-")
+                if len(sublist) == 2:
+                    sp = int(sublist[0])
+                    ep = int(sublist[1])
+                    if sp < 1 or sp > ep:
+                        checkprint("Invalid page range: " + item)
+                        sys.exit()
+                    pagelist.extend(range(sp, ep + 1))
+                else:
+                    checkprint("Invalid page range: " + item)
+                    sys.exit()
+        return pagelist
+    elif "-" in arg:
+        pagelist = []
+        sublist = arg.split("-")
+        if len(sublist) == 2:
+            sp = int(sublist[0])
+            ep = int(sublist[1])
+            if sp < 1 or sp > ep:
+                checkprint("Invalid page range: " + arg)
+                sys.exit()
+            pagelist.extend(range(sp, ep + 1))
+        else:
+            checkprint("Invalid page range: " + arg)
+            sys.exit()
+        return pagelist
+    else:
+        return [int(arg)]
+
+
+# ---------- domain scraping (async) ----------
+async def getdomains(arg: str, session: aiohttp.ClientSession):
+    global domainlist, domainnames
+    for sp in getpagelist(arg):
+        checkprint("getting page " + str(sp))
+        html = await fetch_text(
+            session,
+            f"https://freedns.afraid.org/domain/registry/?page={sp}&sort=2&q=",
+            headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Cache-Control": "max-age=0",
+                "Connection": "keep-alive",
+                "DNT": "1",
+                "Host": "freedns.afraid.org",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Upgrade-Insecure-Requests": "1",
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+                "sec-ch-ua": '"Not;A=Brand";v="24", "Chromium";v="128"',
+                "sec-ch-ua-platform": "Linux",
+            },
+        )
+        pattern = r"<a href=\/subdomain\/edit\.php\?edit_domain_id=(\d+)>([\w.-]+)<\/a>(.+\..+)<td>public<\/td>"
+        matches = re.findall(pattern, html)
+        domainnames.extend([match[1] for match in matches])
+        domainlist.extend([match[0] for match in matches])
+
+
+# ---------- find_domain_id (sync freedns client call in thread) ----------
+async def find_domain_id(domain_name: str, session: aiohttp.ClientSession):
+    page = 1
+    html = await fetch_text(
+        session,
+        "https://freedns.afraid.org/domain/registry/?page=" + str(page) + "&q=" + domain_name,
+        headers={
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+        },
+    )
+    pattern = r"<a href=\/subdomain\/edit\.php\?edit_domain_id=([0-9]+)><font color=red>(?:.+\..+)<\/font><\/a>"
+    matches = re.findall(pattern, html)
+    if len(matches) > 0:
+        checkprint(f"Found domain ID: {matches[0]}")
+    else:
+        raise Exception("Domain ID not found")
+    return matches[0]
+
+
+# ---------- captcha retrieval using freedns client (run in thread) ----------
+async def getcaptcha():
+    # client.get_captcha() is blocking and returns bytes; call in thread
+    data = await asyncio.to_thread(client.get_captcha)
+    return Image.open(BytesIO(data))
+
+
+# ---------- login flow (uses GuerrillaMail via aiohttp, freedns client in thread) ----------
+async def login(session: aiohttp.ClientSession):
     while True:
         try:
             checkprint("getting captcha")
-            image = getcaptcha()
+            image = await getcaptcha()
             if args.auto:
-                capcha = solve(image)
+                # run solve_sync in a thread because pytesseract is CPU bound and blocks
+                capcha = await asyncio.to_thread(solve_sync, image)
+                if not capcha:
+                    checkprint("auto-solve failed, retrying")
+                    continue
                 checkprint("captcha solved (hopefully)")
             else:
                 checkprint("showing captcha")
-                image.show()
-                capcha = input("Enter the captcha code: ")
+                # image.show blocks; run in thread
+                await asyncio.to_thread(image.show)
+                capcha = await asyncio.to_thread(input, "Enter the captcha code: ")
             checkprint("generating email")
-            stuff = req.get(
-                "https://api.guerrillamail.com/ajax.php?f=get_email_address"
-            ).json()
+            stuff = await fetch_json(session, "https://api.guerrillamail.com/ajax.php?f=get_email_address")
             email = stuff["email_addr"]
             checkprint("email address generated email:" + email)
-            checkprint(email)
             checkprint("creating account")
             username = generate_random_string(13)
-            client.create_account(
+
+            # Freedns client create_account is blocking — run in thread
+            await asyncio.to_thread(
+                client.create_account,
                 capcha,
                 generate_random_string(13),
                 generate_random_string(13),
@@ -353,41 +376,31 @@ def login():
             checkprint("activation email sent")
             checkprint("waiting for email")
             hasnotreceived = True
+            sid_token = stuff.get("sid_token")
             while hasnotreceived:
-                nerd = req.get(
-                    "https://api.guerrillamail.com/ajax.php?f=check_email&seq=0&sid_token="
-                    + str(stuff["sid_token"])
-                ).json()
-
-                if int(nerd["count"]) > 0:
+                nerd = await fetch_json(session, f"https://api.guerrillamail.com/ajax.php?f=check_email&seq=0&sid_token={sid_token}")
+                if int(nerd.get("count", 0)) > 0:
                     checkprint("email received")
-                    mail = req.get(
-                        "https://api.guerrillamail.com/ajax.php?f=fetch_email&email_id="
-                        + str(nerd["list"][0]["mail_id"])
-                        + "&sid_token="
-                        + str(stuff["sid_token"])
-                    ).json()
-                    match = re.search(r'\?([^">]+)"', mail["mail_body"])
+                    mail = await fetch_json(session, f"https://api.guerrillamail.com/ajax.php?f=fetch_email&email_id={nerd['list'][0]['mail_id']}&sid_token={sid_token}")
+                    match = re.search(r'\?([^">]+)"', mail.get("mail_body", ""))
                     if match:
                         checkprint("code found")
                         checkprint("verification code: " + match.group(1))
                         checkprint("activating account")
-                        client.activate_account(match.group(1))
+                        # run activate_account in thread
+                        await asyncio.to_thread(client.activate_account, match.group(1))
                         checkprint("accout activated")
-                        time.sleep(1)
+                        await asyncio.sleep(1)
                         checkprint("attempting login")
-                        client.login(email, "pegleg1234")
+                        await asyncio.to_thread(client.login, email, "pegleg1234")
                         checkprint("login successful")
                         hasnotreceived = False
                     else:
-                        checkprint(
-                            "no match in email! you should generally never get this."
-                        )
+                        checkprint("no match in email! you should generally never get this.")
                         checkprint("error!")
-
                 else:
                     checkprint("checked email")
-                    time.sleep(2)
+                    await asyncio.sleep(2)
         except KeyboardInterrupt:
             sys.exit()
         except Exception as e:
@@ -398,11 +411,15 @@ def login():
                     from stem import Signal
                     from stem.control import Controller
 
-                    with Controller.from_port(port=9051) as controller:
-                        controller.authenticate()
-                        controller.signal(Signal.NEWNYM)
-                        time.sleep(controller.get_newnym_wait())
-                        checkprint("tor identity changed")
+                    async def change_tor():
+                        with Controller.from_port(port=9051) as controller:
+                            controller.authenticate()
+                            controller.signal(Signal.NEWNYM)
+                            time_to_wait = controller.get_newnym_wait()
+                            await asyncio.sleep(time_to_wait)
+                            checkprint("tor identity changed")
+
+                    await change_tor()
                 except Exception as e:
                     checkprint("Got error while changing tor identity: " + repr(e))
                     continue
@@ -411,50 +428,21 @@ def login():
             break
 
 
-def createlinks(number):
-    for i in range(number):
-        if i % 5 == 0:
-            if args.use_tor:
-                checkprint("attempting to change tor identity")
-                try:
-                    from stem import Signal
-                    from stem.control import Controller
-
-                    with Controller.from_port(port=9051) as controller:
-                        controller.authenticate()
-                        controller.signal(Signal.NEWNYM)
-                        time.sleep(controller.get_newnym_wait())
-                        checkprint("tor identity changed")
-                except Exception as e:
-                    checkprint("Got error while changing tor identity: " + repr(e))
-                    checkprint("Not going to try changing identity again")
-                    args.use_tor = False
-            login()
-        createdomain()
-
-
-def createmax():
-    login()
-    checkprint("logged in")
-    checkprint("creating domains")
-    createdomain()
-    createdomain()
-    createdomain()
-    createdomain()
-    createdomain()
-
-
-def createdomain():
+# ---------- create domain (uses freedns client create_subdomain in thread, webhook via aiohttp) ----------
+async def createdomain(session: aiohttp.ClientSession):
     while True:
         try:
-            image = getcaptcha()
+            image = await getcaptcha()
             if args.auto:
-                capcha = solve(image)
+                capcha = await asyncio.to_thread(solve_sync, image)
+                if not capcha:
+                    checkprint("auto-solve failed, retrying")
+                    continue
                 checkprint("captcha solved")
             else:
                 checkprint("showing captcha")
-                image.show()
-                capcha = input("Enter the captcha code: ")
+                await asyncio.to_thread(image.show)
+                capcha = await asyncio.to_thread(input, "Enter the captcha code: ")
 
             if args.single_tld:
                 random_domain_id = non_random_domain_id
@@ -464,29 +452,25 @@ def createdomain():
                 subdomainy = generate_random_string(10)
             else:
                 subdomainy = random.choice(args.subdomains.split(","))
-            client.create_subdomain(capcha, args.type, subdomainy, random_domain_id, ip)
+            # call freedns client in thread
+            await asyncio.to_thread(client.create_subdomain, capcha, args.type, subdomainy, random_domain_id, ip)
             tld = args.single_tld or domainnames[domainlist.index(random_domain_id)]
             checkprint("domain created")
             checkprint("link: http://" + subdomainy + "." + tld)
-            domainsdb = open(args.outfile, "a")
-            domainsdb.write("\nhttp://" + subdomainy + "." + tld)
-            domainsdb.close()
+            # write to file (sync, but small)
+            async def write_out():
+                with open(args.outfile, "a") as domainsdb:
+                    domainsdb.write("\nhttp://" + subdomainy + "." + tld)
+            await asyncio.to_thread(write_out)
+
             if hookbool:
                 checkprint("notifying webhook")
-                req.post(
-                    webhook,
-                    json={
-                        "content": "Domain created:\nhttp://"
-                        + subdomainy
-                        + "."
-                        + tld
-                        + "\n ip: "
-                        + ip
-                    },
-                )
-                checkprint("webhook notified")
+                try:
+                    await post_json(session, webhook, {"content": "Domain created:\nhttp://" + subdomainy + "." + tld + "\n ip: " + ip})
+                    checkprint("webhook notified")
+                except Exception as e:
+                    checkprint("Webhook notification failed: " + repr(e))
         except KeyboardInterrupt:
-            # quit
             sys.exit()
         except Exception as e:
             checkprint("Got error while creating domain: " + repr(e))
@@ -495,138 +479,41 @@ def createdomain():
             break
 
 
-non_random_domain_id = None
+async def createlinks(number: int, session: aiohttp.ClientSession):
+    for i in range(number):
+        if i % 5 == 0:
+            if args.use_tor:
+                checkprint("attempting to change tor identity")
+                try:
+                    from stem import Signal
+                    from stem.control import Controller
+
+                    async def change_tor():
+                        with Controller.from_port(port=9051) as controller:
+                            controller.authenticate()
+                            controller.signal(Signal.NEWNYM)
+                            time_to_wait = controller.get_newnym_wait()
+                            await asyncio.sleep(time_to_wait)
+                            checkprint("tor identity changed")
+
+                    await change_tor()
+                except Exception as e:
+                    checkprint("Got error while changing tor identity: " + repr(e))
+                    checkprint("Not going to try changing identity again")
+                    args.use_tor = False
+            await login(session)
+        await createdomain(session)
 
 
-def finddomains(pagearg):
-    pages = pagearg.split(",")
-    for page in pages:
-        getdomains(page)
-
-
-def init():
-    global args, ip, iplist, webhook, hookbool, non_random_domain_id
-    if not args.ip:
-        chosen = chooseFrom(iplist, "Choose an IP to use:")
-        match chosen:
-            case "custom":
-                ip = input("Enter the custom IP: ")
-            case _:
-                ip = iplist[chosen]
-        args.ip = ip  # Assign the chosen/entered IP back to args
-    else:
-        ip = args.ip  # Ensure ip variable is set even if provided via CLI
-    if not args.pages:
-        args.pages = (
-            input(
-                "Enter the page range(s) to scrape (e.g., 15 or 5,8,10-12, default: 10): "
-            )
-            or "10"
-        )
-
-    if not args.webhook:
-        match input("Do you want to use a webhook? (y/n) ").lower():
-            case "y":
-                hookbool = True
-                webhook = input("Enter the webhook URL: ")
-                args.webhook = webhook  # Assign entered webhook back to args
-            case "n":
-                hookbool = False
-                args.webhook = "none"  # Explicitly set to none if declined
-    else:
-        if args.webhook.lower() == "none":
-            hookbool = False
-        else:
-            hookbool = True
-            webhook = args.webhook  # Ensure webhook variable is set
-
-    if (not args.proxy) and (
-        not args.use_tor
-    ):  # Only ask if neither proxy nor tor is set
-        match input("Do you want to use a proxy? (y/n) ").lower():
-            case "y":
-                args.proxy = input(
-                    "Enter the proxy URL (e.g., http://user:pass@host:port): "
-                )
-            case "n":
-                match input(
-                    "Do you want to use Tor (local SOCKS5 proxy on port 9050)? (y/n) "
-                ).lower():
-                    case "y":
-                        args.use_tor = True
-                    case "n":
-                        pass  # Neither proxy nor Tor selected
-    if args.proxy == "none":
-        args.proxy == False
-
-    if not args.outfile:
-        args.outfile = (
-            input(f"Enter the output filename for domains (default: {args.outfile}): ")
-            or args.outfile
-        )
-
-    if not args.type:
-        args.type = (
-            input(f"Enter the type of DNS record to create (default: {args.type}): ")
-            or args.type
-        )
-
-    if not args.pages:
-        args.pages = (
-            input(
-                f"Enter the page range(s) to scrape (e.g., 1-10 or 5,8,10-12, default: {args.pages}): "
-            )
-            or args.pages
-        )
-
-    if not args.subdomains:
-        match input("Use random subdomains? (y/n) ").lower():
-            case "n":
-                args.subdomains = input(
-                    "Enter comma-separated list of subdomains to use: "
-                )
-            case "y":
-                pass
-
-    if not args.number:
-        num_links_input = input("Enter the number of links to create: ")
-        try:
-            num_links = int(num_links_input)
-            args.number = num_links
-        except ValueError:
-            checkprint("Invalid number entered. Exiting.")
-            sys.exit(1)
-    if not args.auto:
-        match input("Use automatic captcha solving? (y/n) ").lower():
-            case "y":
-                args.auto = True
-            case "n":
-                args.auto = False
-
-    if args.use_tor:
-        checkprint("using local tor proxy on port 9050")
-        proxies = {
-            "http": "socks5h://127.0.0.1:9050",
-            "https": "socks5h://127.0.0.1:9050",
-        }
-        client.session.proxies.update(proxies)
-        checkprint("tor proxy set")
-
-    if args.proxy != "none":
-        checkprint("setting proxy with proxy: " + args.proxy)
-        proxies = {"http": args.proxy, "https": args.proxy}
-        client.session.proxies.update(proxies)
-        checkprint("proxy set")
-    if args.single_tld:
-        checkprint("Using single domain mode")
-        checkprint("Finding domain ID for: " + args.single_tld)
-        non_random_domain_id = find_domain_id(args.single_tld)
-        checkprint(f"Using single domain ID: {non_random_domain_id}")
-    else:
-        finddomains(args.pages)
-
-    if args.number:
-        createlinks(args.number)
+async def createmax(session: aiohttp.ClientSession):
+    await login(session)
+    checkprint("logged in")
+    checkprint("creating domains")
+    await createdomain(session)
+    await createdomain(session)
+    await createdomain(session)
+    await createdomain(session)
+    await createdomain(session)
 
 
 def chooseFrom(dictionary, message):
@@ -637,5 +524,165 @@ def chooseFrom(dictionary, message):
     return list(dictionary.keys())[choice - 1]
 
 
+# ---------- finddomains wrapper ----------
+async def finddomains(pagearg: str, session: aiohttp.ClientSession):
+    pages = pagearg.split(",")
+    for page in pages:
+        await getdomains(page, session)
+
+
+# ---------- initialization and orchestration ----------
+async def init_async():
+    global args, ip, iplist, webhook, hookbool, non_random_domain_id
+
+    # create aiohttp session
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    }
+    timeout = aiohttp.ClientTimeout(total=60)
+    async with aiohttp.ClientSession(headers=headers, timeout=timeout) as session:
+        # fetch iplist async (was a raw github url)
+        try:
+            raw = await fetch_text(session, "https://raw.githubusercontent.com/heysysadmins/byod-ip/refs/heads/master/byod.json")
+            iplist_local = eval(raw)
+            # iplist expected to be a dict in original script
+            if isinstance(iplist_local, dict):
+                iplist = iplist_local
+            else:
+                # if it's a list, convert to dict-like mapping
+                iplist = {str(i): ipaddr for i, ipaddr in enumerate(iplist_local, start=1)}
+        except Exception as e:
+            checkprint("Failed to fetch ip list: " + repr(e))
+            iplist = {"1": "127.0.0.1"}  # fallback
+
+        if not args.ip:
+            chosen = chooseFrom(iplist, "Choose an IP to use:")
+            match chosen:
+                case "custom":
+                    ip = input("Enter the custom IP: ")
+                case _:
+                    ip = iplist[chosen]
+            args.ip = ip  # Assign the chosen/entered IP back to args
+        else:
+            ip = args.ip  # Ensure ip variable is set even if provided via CLI
+
+        if not args.pages:
+            args.pages = (
+                input(
+                    "Enter the page range(s) to scrape (e.g., 15 or 5,8,10-12, default: 10): "
+                )
+                or "10"
+            )
+
+        if not args.webhook:
+            match input("Do you want to use a webhook? (y/n) ").lower():
+                case "y":
+                    hookbool = True
+                    webhook = input("Enter the webhook URL: ")
+                    args.webhook = webhook  # Assign entered webhook back to args
+                case "n":
+                    hookbool = False
+                    args.webhook = "none"  # Explicitly set to none if declined
+        else:
+            if args.webhook.lower() == "none":
+                hookbool = False
+            else:
+                hookbool = True
+                webhook = args.webhook  # Ensure webhook variable is set
+
+        if (not args.proxy) and (not args.use_tor):
+            match input("Do you want to use a proxy? (y/n) ").lower():
+                case "y":
+                    args.proxy = input("Enter the proxy URL (e.g., http://user:pass@host:port): ")
+                case "n":
+                    match input("Do you want to use Tor (local SOCKS5 proxy on port 9050)? (y/n) ").lower():
+                        case "y":
+                            args.use_tor = True
+                        case "n":
+                            pass  # Neither proxy nor Tor selected
+
+        if args.proxy == "none":
+            args.proxy = False
+
+        if not args.outfile:
+            args.outfile = (
+                input(f"Enter the output filename for domains (default: {args.outfile}): ")
+                or args.outfile
+            )
+
+        if not args.type:
+            args.type = (
+                input(f"Enter the type of DNS record to create (default: {args.type}): ")
+                or args.type
+            )
+
+        if not args.pages:
+            args.pages = (
+                input(
+                    f"Enter the page range(s) to scrape (e.g., 1-10 or 5,8,10-12, default: {args.pages}): "
+                )
+                or args.pages
+            )
+
+        if not args.subdomains:
+            match input("Use random subdomains? (y/n) ").lower():
+                case "n":
+                    args.subdomains = input("Enter comma-separated list of subdomains to use: ")
+                case "y":
+                    pass
+
+        if not args.number:
+            num_links_input = input("Enter the number of links to create: ")
+            try:
+                num_links = int(num_links_input)
+                args.number = num_links
+            except ValueError:
+                checkprint("Invalid number entered. Exiting.")
+                sys.exit(1)
+        if not args.auto:
+            match input("Use automatic captcha solving? (y/n) ").lower():
+                case "y":
+                    args.auto = True
+                case "n":
+                    args.auto = False
+
+        # If using tor for freedns client (requests), set proxies there.
+        if args.use_tor:
+            checkprint("using local tor proxy on port 9050 for freedns client")
+            proxies = {
+                "http": "socks5h://127.0.0.1:9050",
+                "https": "socks5h://127.0.0.1:9050",
+            }
+            # client.session is a requests.Session; update proxies in thread
+            await asyncio.to_thread(client.session.proxies.update, proxies)
+            checkprint("tor proxy set for freedns client")
+
+        if args.proxy and args.proxy is not False:
+            checkprint("setting proxy with proxy: " + str(args.proxy) + " for freedns client")
+            proxies = {"http": args.proxy, "https": args.proxy}
+            await asyncio.to_thread(client.session.proxies.update, proxies)
+            checkprint("proxy set for freedns client")
+
+        if args.single_tld:
+            checkprint("Using single domain mode")
+            checkprint("Finding domain ID for: " + args.single_tld)
+            non_random_domain_id = await find_domain_id(args.single_tld, session)
+            checkprint(f"Using single domain ID: {non_random_domain_id}")
+        else:
+            # gather domains (async)
+            await finddomains(args.pages, session)
+
+        if args.number:
+            await createlinks(args.number, session)
+
+
+def main():
+    try:
+        asyncio.run(init_async())
+    except KeyboardInterrupt:
+        checkprint("Interrupted by user, exiting.")
+        sys.exit(0)
+
+
 if __name__ == "__main__":
-    init()
+    main()
