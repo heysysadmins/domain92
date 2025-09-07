@@ -686,3 +686,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+def init():
+    import asyncio
+    asyncio.run(main())
